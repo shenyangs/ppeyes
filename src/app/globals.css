@@ -1,0 +1,1236 @@
+:root {
+  --bg: #f3efe6;
+  --bg-strong: #ede5d8;
+  --panel: rgba(250, 247, 240, 0.78);
+  --panel-strong: rgba(255, 252, 246, 0.92);
+  --line: rgba(61, 44, 22, 0.14);
+  --line-strong: rgba(61, 44, 22, 0.24);
+  --text: #2d2418;
+  --muted: #736250;
+  --accent: #b24c2d;
+  --accent-deep: #8c3418;
+  --teal: #0d6c67;
+  --gold: #c0922e;
+  --danger: #9c3131;
+  --shadow: 0 24px 60px rgba(67, 41, 13, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(178, 76, 45, 0.14), transparent 26%),
+    radial-gradient(circle at right 20%, rgba(13, 108, 103, 0.1), transparent 22%),
+    linear-gradient(180deg, #f8f5ef 0%, var(--bg) 100%);
+  font-family: var(--font-body), "PingFang SC", "Hiragino Sans GB", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+}
+
+.pageShell {
+  position: relative;
+  padding: 28px;
+  overflow: hidden;
+}
+
+.ambient {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(18px);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.ambientLeft {
+  top: 120px;
+  left: -80px;
+  width: 180px;
+  height: 180px;
+  background: rgba(178, 76, 45, 0.12);
+}
+
+.ambientRight {
+  top: 280px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  background: rgba(13, 108, 103, 0.12);
+}
+
+.appFrame {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 22px;
+  border: 1px solid rgba(76, 54, 28, 0.1);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.86), rgba(248, 242, 231, 0.84)),
+    rgba(255, 255, 255, 0.32);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.topBar,
+.metricGrid,
+.workspaceGrid {
+  width: 100%;
+}
+
+.headerStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brandBlock {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brandLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(178, 76, 45, 0.24);
+  border-radius: 16px;
+  color: var(--accent-deep);
+  background: linear-gradient(135deg, rgba(178, 76, 45, 0.16), rgba(255, 252, 246, 0.95));
+  font-family: var(--font-display), "Songti SC", serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.eyebrow,
+.panelKicker,
+.metricCard span,
+.insightLabel {
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.brandBlock h1,
+.panelHeader h2 {
+  margin: 0;
+  font-family: var(--font-display), "Songti SC", serif;
+  font-weight: 700;
+}
+
+.brandBlock h1 {
+  font-size: 1.9rem;
+}
+
+.brandBlock p,
+.panelHeader p,
+.metricCard p,
+.eventSummary,
+.insightBlock p {
+  margin: 0;
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 320px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.8);
+}
+
+.searchBox span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.searchBox input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchSubmit {
+  white-space: nowrap;
+}
+
+.dateBadge {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.68);
+  min-width: 108px;
+}
+
+.dateBadge span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.dateBadge strong {
+  font-size: 1rem;
+}
+
+.ghostButton,
+.primaryButton,
+.filledButton,
+.textButton,
+.chip,
+.sortTab {
+  border: 1px solid transparent;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.ghostButton,
+.primaryButton,
+.filledButton {
+  padding: 11px 16px;
+  border-radius: 16px;
+}
+
+.ghostButton {
+  border-color: var(--line);
+  background: rgba(255, 252, 246, 0.58);
+  color: var(--text);
+}
+
+.ghostButton.compact {
+  padding: 9px 12px;
+}
+
+.primaryButton,
+.filledButton {
+  color: #fff6ef;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  box-shadow: 0 10px 26px rgba(140, 52, 24, 0.22);
+}
+
+.ghostButton:hover,
+.primaryButton:hover,
+.filledButton:hover,
+.textButton:hover,
+.chip:hover,
+.sortTab:hover {
+  transform: translateY(-1px);
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.navRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.navLink {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(255, 252, 246, 0.66);
+  text-decoration: none;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.navLink:hover {
+  transform: translateY(-1px);
+}
+
+.navLinkActive {
+  border-color: rgba(178, 76, 45, 0.22);
+  background: rgba(178, 76, 45, 0.1);
+  color: var(--accent-deep);
+}
+
+.metricCard,
+.panel,
+.eventCard {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+}
+
+.metricCard {
+  padding: 18px;
+  text-align: left;
+}
+
+.metricCard strong {
+  display: block;
+  margin: 10px 0 8px;
+  font-family: var(--font-display), "Songti SC", serif;
+  font-size: 2.1rem;
+  line-height: 1;
+}
+
+.metricCard p {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.metricCardActive {
+  border-color: rgba(13, 108, 103, 0.22);
+  background: rgba(236, 248, 246, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(13, 108, 103, 0.08);
+}
+
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1.3fr) minmax(320px, 0.82fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.insightRail {
+  position: relative;
+  align-self: stretch;
+  min-height: 100%;
+}
+
+.activeFiltersBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 2px 4px 8px;
+}
+
+.activeFiltersLabel,
+.resultsHint {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.activeFiltersChips {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.activeFilterChip {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 252, 246, 0.78);
+  font-size: 0.9rem;
+}
+
+.backToTopButton {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(76, 54, 28, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 252, 246, 0.92);
+  color: var(--accent-deep);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 12px 28px rgba(76, 54, 28, 0.12);
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.backToTopButtonVisible {
+  opacity: 1;
+}
+
+.backToTopButton:hover {
+  background: rgba(255, 250, 242, 0.98);
+  box-shadow: 0 14px 32px rgba(76, 54, 28, 0.16);
+}
+
+.quickActionRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pageIntro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.pageIntro h2 {
+  margin: 4px 0 0;
+  font-family: var(--font-display), "Songti SC", serif;
+  font-size: 2rem;
+}
+
+.pageIntro p:last-child {
+  max-width: 520px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.statStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.miniStat {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 252, 246, 0.72);
+}
+
+.miniStat span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.miniStat strong {
+  display: block;
+  margin: 10px 0 6px;
+  font-family: var(--font-display), "Songti SC", serif;
+  font-size: 1.9rem;
+}
+
+.miniStat p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.8fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.stackedPanels {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  padding: 18px;
+}
+
+.formPanel {
+  padding-bottom: 22px;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.panelActionRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.panelHeader h2 {
+  font-size: 1.55rem;
+}
+
+.filterSection + .filterSection {
+  margin-top: 18px;
+}
+
+.filterSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.filterSectionActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.miniTextButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-deep);
+}
+
+.inlineForm {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 180px auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 252, 246, 0.86);
+  color: var(--text);
+}
+
+.field textarea {
+  min-height: 82px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.settingsBlock {
+  margin-bottom: 2px;
+}
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.settingsHint {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.brandLensPanel {
+  padding-bottom: 16px;
+}
+
+.brandLensGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.brandLensHint,
+.brandReason {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.brandLensError {
+  color: var(--danger);
+}
+
+.brandLensSummary {
+  padding: 2px 0 0;
+}
+
+.brandLensSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.brandLensSummaryItem {
+  padding: 14px 15px;
+  border: 1px solid rgba(61, 44, 22, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.8);
+}
+
+.brandLensSummaryItem span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.brandLensSummaryItem strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.brandLensSummaryItemWide {
+  grid-column: 1 / -1;
+}
+
+.brandLensState {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(13, 108, 103, 0.16);
+  background: rgba(13, 108, 103, 0.1);
+  color: var(--teal);
+  font-size: 0.84rem;
+}
+
+.featureGrid,
+.briefingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.featureCard,
+.listCard,
+.laneCard {
+  padding: 16px;
+  border: 1px solid rgba(61, 44, 22, 0.09);
+  border-radius: 20px;
+  background: rgba(255, 252, 246, 0.82);
+}
+
+.featureCard p,
+.listCard p,
+.tableRow p,
+.bulletPanel p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.featureCardTop,
+.laneHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.featureCardTop strong,
+.laneHeader strong {
+  font-size: 1.02rem;
+}
+
+.featureCardTop span,
+.rowLabel,
+.rowMeta,
+.laneHeader span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.templateList,
+.tableLikeList,
+.bulletPanel,
+.laneList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tableRow {
+  padding: 14px 0;
+  border-top: 1px solid rgba(61, 44, 22, 0.08);
+}
+
+.tableRow:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.tableRow strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.stretchButton {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.laneGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.laneHeader {
+  margin-bottom: 12px;
+}
+
+.laneItem {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(45, 36, 24, 0.05);
+  line-height: 1.6;
+}
+
+.filterSection h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.chipGroup,
+.tagRow,
+.channelGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip,
+.channelChip {
+  padding: 8px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 252, 246, 0.82);
+  color: var(--text);
+}
+
+.tagCloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chipActive {
+  border-color: rgba(178, 76, 45, 0.22);
+  background: rgba(178, 76, 45, 0.1);
+  color: var(--accent-deep);
+}
+
+.stackedOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+
+.optionRow input {
+  accent-color: var(--accent);
+}
+
+.sortTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sortTab {
+  padding: 9px 12px;
+  border-radius: 999px;
+  border-color: var(--line);
+  background: rgba(255, 252, 246, 0.62);
+}
+
+.sortTabActive {
+  border-color: rgba(13, 108, 103, 0.24);
+  background: rgba(13, 108, 103, 0.1);
+  color: var(--teal);
+}
+
+.feedList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.eventCard {
+  padding: 18px;
+  background: rgba(255, 252, 246, 0.8);
+}
+
+.eventCardActive {
+  border-color: rgba(178, 76, 45, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(178, 76, 45, 0.08);
+}
+
+.eventCardButton {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.eventCardTop,
+.metaRow,
+.scoreRow,
+.cardActions,
+.insightFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eventCardTop {
+  margin-bottom: 14px;
+}
+
+.eventCard h3 {
+  margin: 0 0 8px;
+  font-size: 1.12rem;
+  line-height: 1.45;
+}
+
+.eventSummary {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.metaRow,
+.tagRow {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.tagRow span {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(45, 36, 24, 0.05);
+}
+
+.scoreRow {
+  margin-top: 16px;
+}
+
+.analysisScoreGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.scoreBadge {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid rgba(61, 44, 22, 0.09);
+  border-radius: 18px;
+  background: var(--panel-strong);
+}
+
+.scoreBadge span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.scoreBadge strong {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-display), "Songti SC", serif;
+  font-size: 1.45rem;
+}
+
+.cardActions {
+  margin-top: 16px;
+}
+
+.textButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-deep);
+}
+
+.actionPill,
+.trendTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+}
+
+.actionPill {
+  border: 1px solid transparent;
+}
+
+.pillPositive {
+  color: var(--teal);
+  border-color: rgba(13, 108, 103, 0.16);
+  background: rgba(13, 108, 103, 0.1);
+}
+
+.pillNeutral {
+  color: #82611f;
+  border-color: rgba(192, 146, 46, 0.16);
+  background: rgba(192, 146, 46, 0.12);
+}
+
+.pillWarning {
+  color: var(--danger);
+  border-color: rgba(156, 49, 49, 0.18);
+  background: rgba(156, 49, 49, 0.1);
+}
+
+.trendTag {
+  color: var(--muted);
+  background: rgba(45, 36, 24, 0.06);
+}
+
+.insightSections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.insightPanel {
+  display: flex;
+  flex-direction: column;
+  transition:
+    top 220ms ease,
+    max-height 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.insightPanelFloating {
+  position: absolute;
+  left: 0;
+  right: 0;
+  will-change: top;
+}
+
+.insightBody {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.insightBody::-webkit-scrollbar {
+  width: 8px;
+}
+
+.insightBody::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(61, 44, 22, 0.18);
+}
+
+.insightBody::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.insightBlock {
+  padding: 14px 15px;
+  border: 1px solid rgba(61, 44, 22, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.8);
+}
+
+.insightBlock p {
+  margin-top: 8px;
+  color: var(--text);
+  line-height: 1.65;
+}
+
+.insightBlockAlert {
+  border-color: rgba(156, 49, 49, 0.16);
+  background: rgba(156, 49, 49, 0.06);
+}
+
+.insightBlockSoft {
+  border-color: rgba(13, 108, 103, 0.14);
+  background: rgba(13, 108, 103, 0.06);
+}
+
+.insightList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--text);
+  line-height: 1.8;
+}
+
+.insightFooter {
+  margin-top: 4px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 26px 18px;
+  border: 1px dashed rgba(61, 44, 22, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.56);
+}
+
+.emptyState strong {
+  font-family: var(--font-display), "Songti SC", serif;
+  font-size: 1.1rem;
+}
+
+.emptyState p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.emptyStateSoft {
+  min-height: 240px;
+  justify-content: center;
+}
+
+.loadingPanel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 4px 4px;
+  color: var(--muted);
+}
+
+.loadingPanel p {
+  margin: 0;
+}
+
+.loadingDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--teal));
+  animation: pulseRing 1.1s ease-in-out infinite;
+}
+
+@media (max-width: 1200px) {
+  .workspaceGrid {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .insightPanel {
+    grid-column: 1 / -1;
+    max-height: none;
+  }
+
+  .insightRail {
+    min-height: auto;
+  }
+
+  .insightPanelFloating {
+    position: static;
+  }
+
+  .contentGrid,
+  .laneGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .inlineForm {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .settingsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .brandLensGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  .pageShell {
+    padding: 16px;
+  }
+
+  .appFrame {
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .backToTopButton {
+    right: 16px;
+    bottom: 16px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .topBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .topActions,
+  .metricGrid,
+  .workspaceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .activeFiltersBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pageIntro,
+  .topActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .metricGrid {
+    display: grid;
+  }
+
+  .searchBox {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .workspaceGrid {
+    display: grid;
+  }
+
+  .statStrip,
+  .featureGrid,
+  .briefingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .inlineForm {
+    grid-template-columns: 1fr;
+  }
+
+  .panelActionRow {
+    width: 100%;
+  }
+
+  .eventCardTop,
+  .metaRow,
+  .scoreRow,
+  .cardActions,
+  .insightFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .analysisScoreGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .insightBody {
+    overflow: visible;
+    padding-right: 0;
+  }
+}

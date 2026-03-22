@@ -1,0 +1,19 @@
+services:
+  ppeyes:
+    container_name: ppeyes
+    image: ppeyes:${PPEYES_IMAGE_TAG:-x86_64}
+    platform: ${PPEYES_PLATFORM:-linux/amd64}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    ports:
+      - "${PPEYES_PORT:-3000}:3000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
