@@ -1039,6 +1039,7 @@ button:disabled {
 }
 
 .insightPanelModal {
+  position: relative;
   height: min(86dvh, 820px);
   max-height: calc(100dvh - 24px);
   border-radius: 24px;
@@ -1052,6 +1053,7 @@ button:disabled {
   top: 0;
   z-index: 1;
   margin-bottom: 12px;
+  padding-right: 44px;
   padding-bottom: 12px;
   background: linear-gradient(180deg, rgba(255, 252, 246, 0.95), rgba(255, 252, 246, 0.86));
 }
@@ -1067,14 +1069,40 @@ button:disabled {
 }
 
 .insightPanelModal .panelActionRow {
-  width: auto;
-  flex: 0 0 auto;
-  justify-content: flex-end;
-  align-items: center;
+  display: none;
 }
 
-.insightPanelModal .panelActionRow .ghostButton.compact {
-  white-space: nowrap;
+.modalCloseButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 252, 246, 0.9);
+  color: var(--text);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.insightModalFooter {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-top: 10px;
+  padding-top: 10px;
+  background: linear-gradient(180deg, rgba(255, 252, 246, 0.1), rgba(255, 252, 246, 0.96) 32%);
+}
+
+.insightModalGenerateButton {
+  width: 100%;
+  min-height: 50px;
+  border-radius: 16px;
 }
 
 .insightBody {
@@ -1315,14 +1343,16 @@ button:disabled {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
+    padding-right: 44px;
   }
 
-  .insightPanelModal .panelActionRow {
-    width: 100%;
-    justify-content: flex-end;
+  .modalCloseButton {
+    top: 10px;
+    right: 10px;
   }
 
   .insightPanelModal .insightBody {
+    flex: 1;
     overflow: auto;
     padding-right: 4px;
   }

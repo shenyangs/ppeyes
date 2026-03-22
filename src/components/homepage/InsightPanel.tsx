@@ -113,20 +113,23 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
             }
       }
     >
+      {isModal && onClose ? (
+        <button aria-label="关闭弹窗" className="modalCloseButton" type="button" onClick={onClose}>
+          ×
+        </button>
+      ) : null}
+
       <div className="panelHeader">
         <div>
           <p className="panelKicker">智能传播助手</p>
           <h2>传播建议</h2>
         </div>
         <div className="panelActionRow">
-          {isModal && onClose ? (
-            <button className="ghostButton compact" type="button" onClick={onClose}>
-              关闭
-            </button>
-          ) : null}
+          {!isModal ? (
           <button className="ghostButton compact" type="button" disabled={!event || isAnalyzing} onClick={onAnalyze}>
             {analyzeButtonLabel}
           </button>
+          ) : null}
         </div>
       </div>
 
@@ -380,6 +383,19 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
           </div>
         )}
       </div>
+
+      {isModal ? (
+        <div className="insightModalFooter">
+          <button
+            className="filledButton insightModalGenerateButton"
+            type="button"
+            disabled={!event || isAnalyzing}
+            onClick={onAnalyze}
+          >
+            {analyzeButtonLabel}
+          </button>
+        </div>
+      ) : null}
     </aside>
   );
 });
