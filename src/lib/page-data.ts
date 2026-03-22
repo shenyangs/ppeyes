@@ -98,6 +98,7 @@ export type WorkspacePayload = {
   }[];
   fetchedAt: string;
   source: "live" | "snapshot" | "fallback";
+  freshnessWindowHours: number;
   brandProfile: BrandProfile | null;
   availablePlatforms: string[];
 };
@@ -176,7 +177,7 @@ function includesQuery(event: WorkspaceEvent, query: string) {
   return tokens.every((token) => normalizedHaystack.includes(normalizeSearchText(token)));
 }
 
-function sortEvents(events: WorkspaceEvent[], sortMode: SortMode) {
+function sortEvents<T extends WorkspaceEvent>(events: T[], sortMode: SortMode): T[] {
   return [...events].sort((a, b) => {
     if (sortMode === "brand") {
       return (
@@ -249,11 +250,81 @@ function buildAvailablePlatforms(events: WorkspaceEvent[]) {
   return filterOptions.platform.filter((platform) => present.has(platform));
 }
 
-function isFreshEvent(event: WorkspaceEvent) {
-  if (!event.capturedAt) return false;
+const BASE_FRESHNESS_HOURS = 12;
+const MIN_RELATED_EVENTS = 20;
+const FRESHNESS_EXPANSION_HOURS = [12, 18, 24, 36, 48, 72];
+const DEFAULT_RELATED_WATCHLISTS: WatchlistType[] = ["品牌词", "竞品词", "行业词"];
+
+type WorkspaceFilterContext = {
+  q: string;
+  time: TimeFilter;
+  industry: string;
+  risk: "全部" | "低" | "中" | "高";
+  normalizedPlatforms: string[];
+  normalizedWatchlists: WatchlistType[];
+};
+
+function getEventAgeMs(event: WorkspaceEvent) {
+  if (!event.capturedAt) return null;
   const capturedAtMs = new Date(event.capturedAt).getTime();
-  if (!Number.isFinite(capturedAtMs)) return false;
-  return Date.now() - capturedAtMs <= 1000 * 60 * 60 * 12;
+  if (!Number.isFinite(capturedAtMs)) return null;
+  return Date.now() - capturedAtMs;
+}
+
+function isWithinFreshnessWindow(event: WorkspaceEvent, hours: number) {
+  const ageMs = getEventAgeMs(event);
+  if (ageMs === null) return false;
+  return ageMs <= hours * 60 * 60 * 1000;
+}
+
+function matchesWorkspaceFilters(event: WorkspaceEvent, context: WorkspaceFilterContext) {
+  const matchesQuery = includesQuery(event, context.q);
+  const matchesTime = context.time === "全部" ? true : event.timeWindow === context.time;
+  const matchesIndustry = context.industry === "全部" ? true : event.industry === context.industry;
+  const matchesRisk = context.risk === "全部" ? true : event.risk === context.risk;
+  const matchesPlatform =
+    context.normalizedPlatforms.length === 0
+      ? true
+      : event.sources.some((source) => context.normalizedPlatforms.includes(source));
+  const matchesWatchlist =
+    context.normalizedWatchlists.length === 0
+      ? true
+      : event.watchlists.some((item) => context.normalizedWatchlists.includes(item));
+
+  return (
+    matchesQuery &&
+    matchesTime &&
+    matchesIndustry &&
+    matchesRisk &&
+    matchesPlatform &&
+    matchesWatchlist
+  );
+}
+
+function resolveFreshnessWindowHours(events: WorkspaceEvent[], context: WorkspaceFilterContext) {
+  const shouldGuaranteeMinimum = context.q.trim().length === 0 && context.time === "全部";
+
+  if (!shouldGuaranteeMinimum) {
+    return BASE_FRESHNESS_HOURS;
+  }
+
+  let bestHours = BASE_FRESHNESS_HOURS;
+  let bestCount = 0;
+
+  for (const hours of FRESHNESS_EXPANSION_HOURS) {
+    const count = events.filter((event) => isWithinFreshnessWindow(event, hours) && matchesWorkspaceFilters(event, context)).length;
+
+    if (count >= MIN_RELATED_EVENTS) {
+      return hours;
+    }
+
+    if (count > bestCount) {
+      bestCount = count;
+      bestHours = hours;
+    }
+  }
+
+  return bestHours;
 }
 
 export function buildWorkspacePayload(
@@ -282,44 +353,62 @@ export function buildWorkspacePayload(
     ...event,
     brandView: brandProfile ? event.brandView || buildBrandView(event, brandProfile) : undefined
   }));
-  const freshEvents = enrichedEvents.filter(isFreshEvent);
+  const filterContext: WorkspaceFilterContext = {
+    q,
+    time,
+    industry,
+    risk,
+    normalizedPlatforms,
+    normalizedWatchlists
+  };
+  const freshnessWindowHours = resolveFreshnessWindowHours(enrichedEvents, filterContext);
+  const freshEvents = enrichedEvents.filter((event) => isWithinFreshnessWindow(event, freshnessWindowHours));
+  const scopedEvents = (freshEvents.length > 0 ? freshEvents : enrichedEvents).map((event) => ({
+    ...event,
+    saved: savedEventIds.includes(event.id)
+  }));
 
-  const filtered = freshEvents
-    .map((event) => ({
-      ...event,
-      saved: savedEventIds.includes(event.id)
-    }))
-    .filter((event) => {
-      const matchesQuery = includesQuery(event, q);
-      const matchesTime = time === "全部" ? true : event.timeWindow === time;
-    const matchesIndustry = industry === "全部" ? true : event.industry === industry;
-    const matchesRisk = risk === "全部" ? true : event.risk === risk;
-    const matchesPlatform =
-      normalizedPlatforms.length === 0
-        ? true
-        : event.sources.some((source) => normalizedPlatforms.includes(source));
-    const matchesWatchlist =
-      normalizedWatchlists.length === 0
-        ? true
-        : event.watchlists.some((item) => normalizedWatchlists.includes(item));
+  let filtered = scopedEvents.filter((event) => matchesWorkspaceFilters(event, filterContext));
+  const isDefaultRelatedWatchlists =
+    normalizedWatchlists.length === DEFAULT_RELATED_WATCHLISTS.length &&
+    DEFAULT_RELATED_WATCHLISTS.every((watchlist) => normalizedWatchlists.includes(watchlist));
 
-      return (
-        matchesQuery &&
-        matchesTime &&
-        matchesIndustry &&
-        matchesRisk &&
-        matchesPlatform &&
-        matchesWatchlist
-      );
-    });
+  if (
+    filtered.length < MIN_RELATED_EVENTS &&
+    q.trim().length === 0 &&
+    time === "全部" &&
+    isDefaultRelatedWatchlists
+  ) {
+    const relaxedContext: WorkspaceFilterContext = {
+      ...filterContext,
+      normalizedWatchlists: []
+    };
+    const relaxedPool = sortEvents(
+      scopedEvents.filter((event) => matchesWorkspaceFilters(event, relaxedContext)),
+      sort
+    );
+    const merged = new Map(filtered.map((event) => [event.id, event]));
+
+    for (const event of relaxedPool) {
+      if (!merged.has(event.id)) {
+        merged.set(event.id, event);
+      }
+      if (merged.size >= MIN_RELATED_EVENTS) {
+        break;
+      }
+    }
+
+    filtered = Array.from(merged.values());
+  }
 
   return {
     events: sortEvents(applyMetric(filtered, metric), sort),
-    metrics: buildWorkspaceMetrics(freshEvents, brandProfile),
+    metrics: buildWorkspaceMetrics(scopedEvents, brandProfile),
     fetchedAt,
     source,
+    freshnessWindowHours,
     brandProfile,
-    availablePlatforms: buildAvailablePlatforms(freshEvents)
+    availablePlatforms: buildAvailablePlatforms(scopedEvents)
   };
 }
 

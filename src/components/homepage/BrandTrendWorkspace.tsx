@@ -809,7 +809,7 @@ export function BrandTrendWorkspace() {
                   workspace.source === "snapshot" ? "实时源波动，当前展示最近一次成功快照 · " : ""
                 }`
               : ""}
-            仅展示近 12 小时热点 · 
+            {workspace ? `当前时间窗口：近 ${workspace.freshnessWindowHours} 小时 · ` : ""}
             {loadingProgress ? `${loadingProgress.stage} ${loadingProgress.loaded}/${loadingProgress.total} · ` : ""}
             匹配到 {filteredEvents.length} 条事件
           </span>
