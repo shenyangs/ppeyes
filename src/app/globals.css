@@ -537,6 +537,20 @@ button:disabled {
   justify-content: flex-end;
 }
 
+.autofillAction {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.autofillHint {
+  font-size: 0.74rem;
+  line-height: 1.2;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .panelHeader h2 {
   font-size: 1.55rem;
 }
@@ -1304,6 +1318,12 @@ button:disabled {
 
   .panelActionRow {
     width: 100%;
+  }
+
+  .autofillHint {
+    white-space: normal;
+    text-align: right;
+    max-width: 140px;
   }
 
   .eventCardTop,

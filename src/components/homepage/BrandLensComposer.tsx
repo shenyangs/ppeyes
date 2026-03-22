@@ -47,9 +47,12 @@ export function BrandLensComposer({
               修改
             </button>
           ) : null}
-          <button className="ghostButton compact" type="button" disabled={isAutofilling} onClick={onAutofill}>
-            {isAutofilling ? "填写中..." : "一键填写"}
-          </button>
+          <div className="autofillAction">
+            <button className="ghostButton compact" type="button" disabled={isAutofilling} onClick={onAutofill}>
+              {isAutofilling ? "填写中..." : "一键填写"}
+            </button>
+            <span className="autofillHint">只需填写品牌名，即可一键补全其余信息</span>
+          </div>
           <button className="ghostButton compact" type="button" onClick={handleClear}>
             清空
           </button>
