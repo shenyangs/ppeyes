@@ -16,7 +16,9 @@ type EventFeedProps = {
   hasBrandLens: boolean;
   selectedEventId: string | null;
   onSelectEvent: (event: WorkspaceEvent, anchorTop?: number) => void;
+  onViewSuggestions: (event: WorkspaceEvent, anchorTop?: number) => void;
   onGenerateEvent: (event: WorkspaceEvent, anchorTop?: number) => void;
+  analyzingEventId: string | null;
   onSaveOpportunity: (event: WorkspaceEvent) => void;
   savingEventId: string | null;
   sortMode: SortMode;
@@ -29,7 +31,9 @@ export const EventFeed = forwardRef<HTMLElement, EventFeedProps>(function EventF
   hasBrandLens,
   selectedEventId,
   onSelectEvent,
+  onViewSuggestions,
   onGenerateEvent,
+  analyzingEventId,
   onSaveOpportunity,
   savingEventId,
   sortMode,
@@ -157,7 +161,7 @@ export const EventFeed = forwardRef<HTMLElement, EventFeedProps>(function EventF
                   className="textButton"
                   type="button"
                   onClick={(eventTarget: MouseEvent<HTMLButtonElement>) =>
-                    onSelectEvent(event, getAnchorTop(eventTarget.currentTarget))
+                    onViewSuggestions(event, getAnchorTop(eventTarget.currentTarget))
                   }
                 >
                   查看建议
@@ -173,11 +177,12 @@ export const EventFeed = forwardRef<HTMLElement, EventFeedProps>(function EventF
                 <button
                   className="filledButton"
                   type="button"
+                  disabled={analyzingEventId === event.id}
                   onClick={(eventTarget: MouseEvent<HTMLButtonElement>) =>
                     onGenerateEvent(event, getAnchorTop(eventTarget.currentTarget))
                   }
                 >
-                  生成创意
+                  {analyzingEventId === event.id ? "生成中..." : "生成创意"}
                 </button>
               </div>
             </article>

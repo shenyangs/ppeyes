@@ -498,11 +498,32 @@ export function BrandTrendWorkspace() {
     }
   }
 
+  function shouldFocusInsightPanelOnMobile() {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 1200px)").matches;
+  }
+
+  function focusInsightPanelOnMobile() {
+    if (!shouldFocusInsightPanelOnMobile()) return;
+
+    requestAnimationFrame(() => {
+      insightPanelRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
+  }
+
   function handleSelectEvent(event: WorkspaceEvent, anchorTop?: number) {
     const nextEventKey = getEventSelectionKey(event);
     selectedEventKeyRef.current = nextEventKey;
     setSelectedEventKey(nextEventKey);
     positionInsightPanel(anchorTop);
+  }
+
+  function handleViewSuggestions(event: WorkspaceEvent, anchorTop?: number) {
+    handleSelectEvent(event, anchorTop);
+    focusInsightPanelOnMobile();
   }
 
   async function handleSaveOpportunity(event: (typeof filteredEvents)[number]) {
@@ -607,6 +628,11 @@ export function BrandTrendWorkspace() {
     }
   }
 
+  async function handleGenerateFromFeed(event: WorkspaceEvent, anchorTop?: number) {
+    focusInsightPanelOnMobile();
+    await handleAnalyze(event, anchorTop);
+  }
+
   function applyBrandLens() {
     const normalized = normalizeBrandProfile(brandDraft);
     setBrandProfile(normalized);
@@ -639,6 +665,10 @@ export function BrandTrendWorkspace() {
     selectedEvent && analysisEventKey === getEventSelectionKey(selectedEvent) ? analysisError : null;
   const visibleIsAnalyzing =
     selectedEvent && analysisEventKey === getEventSelectionKey(selectedEvent) ? isAnalyzing : false;
+  const analyzingEventId =
+    isAnalyzing && analysisEventKey
+      ? filteredEvents.find((event) => getEventSelectionKey(event) === analysisEventKey)?.id ?? null
+      : null;
 
   return (
     <AppShell
@@ -743,7 +773,9 @@ export function BrandTrendWorkspace() {
                 hasBrandLens={Boolean(brandProfile)}
                 selectedEventId={selectedEvent?.id ?? null}
                 onSelectEvent={handleSelectEvent}
-                onGenerateEvent={handleAnalyze}
+                onViewSuggestions={handleViewSuggestions}
+                onGenerateEvent={handleGenerateFromFeed}
+                analyzingEventId={analyzingEventId}
                 onSaveOpportunity={handleSaveOpportunity}
                 savingEventId={savingEventId}
                 sortMode={sortMode}
