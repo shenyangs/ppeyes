@@ -249,6 +249,13 @@ function buildAvailablePlatforms(events: WorkspaceEvent[]) {
   return filterOptions.platform.filter((platform) => present.has(platform));
 }
 
+function isFreshEvent(event: WorkspaceEvent) {
+  if (!event.capturedAt) return false;
+  const capturedAtMs = new Date(event.capturedAt).getTime();
+  if (!Number.isFinite(capturedAtMs)) return false;
+  return Date.now() - capturedAtMs <= 1000 * 60 * 60 * 12;
+}
+
 export function buildWorkspacePayload(
   query: WorkspaceQuery = {},
   savedEventIds: string[] = [],
@@ -275,8 +282,9 @@ export function buildWorkspacePayload(
     ...event,
     brandView: brandProfile ? event.brandView || buildBrandView(event, brandProfile) : undefined
   }));
+  const freshEvents = enrichedEvents.filter(isFreshEvent);
 
-  const filtered = enrichedEvents
+  const filtered = freshEvents
     .map((event) => ({
       ...event,
       saved: savedEventIds.includes(event.id)
@@ -307,11 +315,11 @@ export function buildWorkspacePayload(
 
   return {
     events: sortEvents(applyMetric(filtered, metric), sort),
-    metrics: buildWorkspaceMetrics(enrichedEvents, brandProfile),
+    metrics: buildWorkspaceMetrics(freshEvents, brandProfile),
     fetchedAt,
     source,
     brandProfile,
-    availablePlatforms: buildAvailablePlatforms(enrichedEvents)
+    availablePlatforms: buildAvailablePlatforms(freshEvents)
   };
 }
 

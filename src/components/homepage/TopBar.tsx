@@ -10,24 +10,47 @@ type TopBarProps = {
 
 function getCurrentDateMeta() {
   const now = new Date();
-  const weekday = now.toLocaleDateString("zh-CN", { weekday: "short" });
-  const dateLabel = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(
-    now.getDate()
-  ).padStart(2, "0")}`;
+  const weekday = new Intl.DateTimeFormat("zh-CN", {
+    weekday: "short",
+    timeZone: "Asia/Shanghai"
+  }).format(now);
+  const dateLabel = new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Shanghai"
+  })
+    .format(now)
+    .replace(/\//g, ".");
+  const timeLabel = new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Shanghai"
+  }).format(now);
 
   return {
     weekday,
-    dateLabel
+    dateLabel,
+    timeLabel
   };
 }
 
 export function TopBar({ query, onQueryChange, onRefresh, isRefreshing = false }: TopBarProps) {
   const [draftQuery, setDraftQuery] = useState(query);
-  const { weekday, dateLabel } = getCurrentDateMeta();
+  const [clock, setClock] = useState(getCurrentDateMeta());
 
   useEffect(() => {
     setDraftQuery(query);
   }, [query]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setClock(getCurrentDateMeta());
+    }, 1000 * 30);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,8 +77,8 @@ export function TopBar({ query, onQueryChange, onRefresh, isRefreshing = false }
           </button>
         </form>
         <div className="dateBadge">
-          <span>{weekday}</span>
-          <strong>{dateLabel}</strong>
+          <span>{clock.weekday} · 北京时间 {clock.timeLabel}</span>
+          <strong>{clock.dateLabel}</strong>
         </div>
         <button className="ghostButton" type="button" disabled={isRefreshing} onClick={onRefresh}>
           {isRefreshing ? "刷新中..." : "刷新热度"}

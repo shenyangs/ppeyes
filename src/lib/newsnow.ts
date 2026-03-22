@@ -240,22 +240,37 @@ function buildNextStep(action: EventAction, source: NewsNowSourceConfig) {
   return "建议继续观察 2 至 4 小时后再决定是否跟进。";
 }
 
-function buildFirstSeen(index: number) {
-  return `${String(8 + Math.floor(index / 6)).padStart(2, "0")}:${String((index % 6) * 10).padStart(2, "0")}`;
+function formatFirstSeen(timestamp: number) {
+  return new Date(timestamp).toLocaleTimeString("zh-CN", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Shanghai"
+  });
 }
 
-function normalizeNewsNowItems(items: NewsNowItem[], source: NewsNowSourceConfig): EventItem[] {
+function inferTimeWindow(timestamp: number) {
+  const ageMs = Date.now() - timestamp;
+  if (ageMs <= 1000 * 60 * 60) return "近 1 小时";
+  if (ageMs <= 1000 * 60 * 60 * 24) return "今日";
+  return "近 24 小时";
+}
+
+function normalizeNewsNowItems(items: NewsNowItem[], source: NewsNowSourceConfig, sourceUpdatedTime: number): EventItem[] {
   return items.slice(0, NEWSNOW_MAX_ITEMS_PER_SOURCE).map((item, index) => {
     const sentiment = inferSentiment(item.title);
     const risk = inferRisk(sentiment);
     const action = inferAction(risk, item.title);
+    const capturedAtMs = Math.max(sourceUpdatedTime - index * 1000 * 60 * 3, sourceUpdatedTime - 1000 * 60 * 60 * 12);
+    const capturedAt = new Date(capturedAtMs).toISOString();
 
     return {
       id: `${source.id}-${index + 1}-${encodeURIComponent(String(item.id || item.title))}`,
       title: item.title,
       summary: buildSummary(item.title, source, item.extra?.info),
+      capturedAt,
       sources: [source.label],
-      firstSeen: buildFirstSeen(index),
+      firstSeen: formatFirstSeen(capturedAtMs),
       trend: inferTrend(index),
       industry: inferIndustry(item.title),
       sentiment,
@@ -270,7 +285,7 @@ function normalizeNewsNowItems(items: NewsNowItem[], source: NewsNowSourceConfig
       draft: buildDraft(action, item.title, source),
       riskNote: buildRiskNote(risk),
       nextStep: buildNextStep(action, source),
-      timeWindow: index < 8 ? "近 1 小时" : index < 14 ? "今日" : "近 24 小时",
+      timeWindow: inferTimeWindow(capturedAtMs),
       heatDelta: Math.max(34, 100 - index * 3 + source.opportunityBoost),
       watchlists: inferWatchlists(item.title),
       saved: false
@@ -279,14 +294,27 @@ function normalizeNewsNowItems(items: NewsNowItem[], source: NewsNowSourceConfig
 }
 
 function dedupeEvents(events: EventItem[]) {
-  const seen = new Set<string>();
+  const deduped = new Map<string, EventItem>();
 
-  return events.filter((event) => {
+  events.forEach((event) => {
     const key = event.title.replace(/\s+/g, "").trim();
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
+    if (!key) return;
+
+    const existing = deduped.get(key);
+    if (!existing) {
+      deduped.set(key, event);
+      return;
+    }
+
+    const existingCaptured = new Date(existing.capturedAt || 0).getTime();
+    const nextCaptured = new Date(event.capturedAt || 0).getTime();
+
+    if (nextCaptured > existingCaptured || (nextCaptured === existingCaptured && event.opportunity > existing.opportunity)) {
+      deduped.set(key, event);
+    }
   });
+
+  return Array.from(deduped.values());
 }
 
 async function fetchNewsNowSource(source: NewsNowSourceConfig): Promise<{
@@ -317,10 +345,10 @@ async function fetchNewsNowSource(source: NewsNowSourceConfig): Promise<{
               throw new Error(`invalid_newsnow_payload_${source.id}`);
             }
 
-            resolve({
-              events: normalizeNewsNowItems(parsed.items, source),
-              fetchedAt: new Date(parsed.updatedTime || Date.now()).toISOString()
-            });
+              resolve({
+                events: normalizeNewsNowItems(parsed.items, source, parsed.updatedTime || Date.now()),
+                fetchedAt: new Date(parsed.updatedTime || Date.now()).toISOString()
+              });
           } catch (error) {
             reject(error);
           }

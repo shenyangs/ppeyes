@@ -18,6 +18,7 @@ export type EventItem = {
   id: string;
   title: string;
   summary: string;
+  capturedAt?: string;
   sources: string[];
   firstSeen: string;
   trend: EventTrend;
