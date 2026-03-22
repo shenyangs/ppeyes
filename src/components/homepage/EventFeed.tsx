@@ -61,10 +61,10 @@ export const EventFeed = forwardRef<HTMLElement, EventFeedProps>(function EventF
   const headerKicker = hasBrandLens
     ? sortMode === "brand"
       ? strongCount > 0
-        ? "Brand-first Feed"
-        : "Brand-ranked Feed"
-      : "Brand Lens Active"
-    : "Today's Priority Feed";
+        ? "品牌优先排序"
+        : "品牌匹配排序"
+      : "已启用品牌视角"
+    : "今日重点热点";
 
   return (
     <section className="panel feedPanel" ref={ref}>

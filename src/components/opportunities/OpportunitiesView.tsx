@@ -43,7 +43,7 @@ export function OpportunitiesView() {
 
       <section className="pageIntro">
         <div>
-          <p className="panelKicker">Opportunity Pool</p>
+          <p className="panelKicker">机会池</p>
           <h2>把值得跟的热点沉淀成今天能执行的内容机会</h2>
         </div>
         <p>这里不是收藏夹，而是轻量选题池。每条机会都要有跟进时机、建议形式和当前状态。</p>
@@ -86,7 +86,7 @@ export function OpportunitiesView() {
           <section className="panel">
             <div className="panelHeader">
               <div>
-                <p className="panelKicker">Pipeline Board</p>
+                <p className="panelKicker">机会看板</p>
                 <h2>机会流转看板</h2>
               </div>
               <button className="miniTextButton" type="button">
@@ -117,7 +117,7 @@ export function OpportunitiesView() {
             <section className="panel">
               <div className="panelHeader">
                 <div>
-                  <p className="panelKicker">Today Picks</p>
+                  <p className="panelKicker">今日优先</p>
                   <h2>建议优先处理</h2>
                 </div>
               </div>
@@ -149,7 +149,7 @@ export function OpportunitiesView() {
               <section className="panel">
                 <div className="panelHeader">
                   <div>
-                    <p className="panelKicker">Action Principle</p>
+                    <p className="panelKicker">执行原则</p>
                     <h2>入池规则</h2>
                   </div>
                 </div>
@@ -164,7 +164,7 @@ export function OpportunitiesView() {
               <section className="panel">
                 <div className="panelHeader">
                   <div>
-                    <p className="panelKicker">Future Expansion</p>
+                    <p className="panelKicker">能力扩展</p>
                     <h2>后续可接能力</h2>
                   </div>
                 </div>
@@ -179,7 +179,7 @@ export function OpportunitiesView() {
               <section className="panel">
                 <div className="panelHeader">
                   <div>
-                    <p className="panelKicker">Saved Items</p>
+                    <p className="panelKicker">已保存条目</p>
                     <h2>已保存机会</h2>
                   </div>
                 </div>

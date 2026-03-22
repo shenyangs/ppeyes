@@ -47,7 +47,7 @@ export function FilterRail({
     <aside className="panel filterPanel">
       <div className="panelHeader">
         <div>
-          <p className="panelKicker">Workspace Filters</p>
+          <p className="panelKicker">筛选条件</p>
           <h2>工作台筛选</h2>
         </div>
         <button className="miniTextButton" type="button" onClick={onReset}>

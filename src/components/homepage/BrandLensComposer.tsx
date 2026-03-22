@@ -37,7 +37,7 @@ export function BrandLensComposer({
     <section className="panel brandLensPanel">
       <div className="panelHeader">
         <div>
-          <p className="panelKicker">Brand Lens</p>
+          <p className="panelKicker">品牌视角设置</p>
           <h2>品牌视角</h2>
         </div>
         <div className="panelActionRow">
@@ -153,7 +153,7 @@ export function BrandLensComposer({
           </div>
 
           <p className="brandLensHint">
-            这里不是搜索关键词，而是给系统一张品牌和产品 brief。之后每条热点都会先按你的产品能力来做策划，不只说品牌态度，而是要落到具体产品方案。
+            这里不是搜索关键词，而是给系统一份品牌和产品简介。之后每条热点都会先按你的产品能力来做策划，不只说品牌态度，而是要落到具体产品方案。
           </p>
           {autofillError ? <p className="brandLensHint brandLensError">{autofillError}</p> : null}
         </>

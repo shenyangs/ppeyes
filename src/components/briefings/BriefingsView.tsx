@@ -43,7 +43,7 @@ export function BriefingsView() {
 
       <section className="pageIntro">
         <div>
-          <p className="panelKicker">Briefings</p>
+          <p className="panelKicker">简报中心</p>
           <h2>把工作台里的判断沉淀成团队可以直接同步的简报</h2>
         </div>
         <p>简报不是原始数据堆叠，而是“为什么值得看、值不值得做、风险在哪里”的结构化输出。</p>
@@ -84,7 +84,7 @@ export function BriefingsView() {
             <section className="panel">
               <div className="panelHeader">
                 <div>
-                  <p className="panelKicker">Generated Briefings</p>
+                  <p className="panelKicker">已生成简报</p>
                   <h2>最近生成</h2>
                 </div>
               </div>
@@ -106,7 +106,7 @@ export function BriefingsView() {
               <section className="panel">
                 <div className="panelHeader">
                   <div>
-                    <p className="panelKicker">Recommended Structure</p>
+                    <p className="panelKicker">推荐结构</p>
                     <h2>每份简报应包含</h2>
                   </div>
                 </div>
@@ -121,7 +121,7 @@ export function BriefingsView() {
               <section className="panel">
                 <div className="panelHeader">
                   <div>
-                    <p className="panelKicker">Delivery Plan</p>
+                    <p className="panelKicker">分发计划</p>
                     <h2>后续推送方向</h2>
                   </div>
                 </div>

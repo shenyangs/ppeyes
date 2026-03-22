@@ -93,7 +93,7 @@ export function WatchlistsView() {
 
       <section className="pageIntro">
         <div>
-          <p className="panelKicker">Watchlist Setup</p>
+          <p className="panelKicker">监测词设置</p>
           <h2>品牌、竞品、行业与风险词的轻配置中心</h2>
         </div>
         <p>
@@ -121,7 +121,7 @@ export function WatchlistsView() {
             <section className="panel formPanel">
               <div className="panelHeader">
                 <div>
-                  <p className="panelKicker">New Watchlist Term</p>
+                  <p className="panelKicker">新增监测词</p>
                   <h2>新增监测词</h2>
                 </div>
                 <button className="miniTextButton" type="button" onClick={() => setShowForm(false)}>
@@ -215,7 +215,7 @@ export function WatchlistsView() {
               <section className="panel">
                 <div className="panelHeader">
                   <div>
-                    <p className="panelKicker">Watchlist Groups</p>
+                    <p className="panelKicker">词包分组</p>
                     <h2>词包分组</h2>
                   </div>
                   <button className="miniTextButton" type="button">
@@ -244,7 +244,7 @@ export function WatchlistsView() {
               <section className="panel">
                 <div className="panelHeader">
                   <div>
-                    <p className="panelKicker">Suggested Setup</p>
+                    <p className="panelKicker">推荐配置</p>
                     <h2>推荐配置模板</h2>
                   </div>
                 </div>
@@ -264,7 +264,7 @@ export function WatchlistsView() {
               <section className="panel">
                 <div className="panelHeader">
                   <div>
-                    <p className="panelKicker">Recent Matches</p>
+                    <p className="panelKicker">最近命中</p>
                     <h2>最近命中</h2>
                   </div>
                 </div>
@@ -286,7 +286,7 @@ export function WatchlistsView() {
               <section className="panel">
                 <div className="panelHeader">
                   <div>
-                    <p className="panelKicker">Design Principle</p>
+                    <p className="panelKicker">设计原则</p>
                     <h2>首版交互原则</h2>
                   </div>
                 </div>
@@ -301,7 +301,7 @@ export function WatchlistsView() {
               <section className="panel">
                 <div className="panelHeader">
                   <div>
-                    <p className="panelKicker">Recent Terms</p>
+                    <p className="panelKicker">最近词条</p>
                     <h2>已保存监测词</h2>
                   </div>
                 </div>
