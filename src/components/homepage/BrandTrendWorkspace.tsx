@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { BrandLensComposer } from "@/components/homepage/BrandLensComposer";
 import type { EventAnalysis } from "@/lib/analysis";
 import { emptyBrandProfile, normalizeBrandProfile, type BrandProfile } from "@/lib/brand";
@@ -22,7 +23,7 @@ import { buildWorkspacePayload, type WorkspaceEvent, type WorkspacePayload, type
 
 const legacyDefaultPlatforms = ["微博", "抖音", "小红书"];
 const progressivePlatformDefaults = ["微博", "抖音", "B 站", "知乎", "百度"];
-const mobileInsightBreakpoint = 960;
+const mobileInsightBreakpoint = 1200;
 
 function isLegacyPlatformSelection(platforms: string[]) {
   return platforms.length === legacyDefaultPlatforms.length && platforms.every((platform) => legacyDefaultPlatforms.includes(platform));
@@ -694,20 +695,53 @@ export function BrandTrendWorkspace() {
       : null;
   const showMobileInsightModal = isMobileInsightLayout && isMobileInsightOpen;
 
+  const mobileInsightModal =
+    showMobileInsightModal && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            aria-modal="true"
+            className="mobileInsightOverlay"
+            role="dialog"
+            onClick={closeMobileInsightModal}
+          >
+            <div className="mobileInsightSheet" onClick={(event) => event.stopPropagation()}>
+              <InsightPanel
+                ref={insightPanelRef}
+                event={selectedEvent}
+                brandProfile={brandProfile}
+                topOffset={0}
+                isModal
+                onClose={closeMobileInsightModal}
+                onSaveOpportunity={handleSaveOpportunity}
+                savingEventId={savingEventId}
+                analysis={visibleAnalysis}
+                isAnalyzing={visibleIsAnalyzing}
+                analysisError={visibleAnalysisError}
+                onAnalyze={handleAnalyze}
+              />
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
-    <AppShell
-      floatingSlot={
-        <button
-          aria-label="回到顶部"
-          className="backToTopButton backToTopButtonVisible"
-          title="回到顶部"
-          type="button"
-          onClick={handleBackToTop}
-        >
-          ↑
-        </button>
-      }
-    >
+    <>
+      <AppShell
+        floatingSlot={
+          showMobileInsightModal ? null : (
+            <button
+              aria-label="回到顶部"
+              className="backToTopButton backToTopButtonVisible"
+              title="回到顶部"
+              type="button"
+              onClick={handleBackToTop}
+            >
+              ↑
+            </button>
+          )
+        }
+      >
         <TopBar query={query} onQueryChange={setQuery} />
 
         <SummaryMetrics
@@ -831,32 +865,8 @@ export function BrandTrendWorkspace() {
           </section>
         )}
 
-        {showMobileInsightModal ? (
-          <div
-            aria-modal="true"
-            className="mobileInsightOverlay"
-            role="dialog"
-            onClick={closeMobileInsightModal}
-          >
-            <div className="mobileInsightSheet" onClick={(event) => event.stopPropagation()}>
-              <InsightPanel
-                ref={insightPanelRef}
-                event={selectedEvent}
-                brandProfile={brandProfile}
-                topOffset={0}
-                isModal
-                onClose={closeMobileInsightModal}
-                onSaveOpportunity={handleSaveOpportunity}
-                savingEventId={savingEventId}
-                analysis={visibleAnalysis}
-                isAnalyzing={visibleIsAnalyzing}
-                analysisError={visibleAnalysisError}
-                onAnalyze={handleAnalyze}
-              />
-            </div>
-          </div>
-        ) : null}
-
-    </AppShell>
+      </AppShell>
+      {mobileInsightModal}
+    </>
   );
 }
