@@ -92,7 +92,7 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
     >
       <div className="panelHeader">
         <div>
-          <p className="panelKicker">Gemini Strategy Copilot</p>
+          <p className="panelKicker">AI Strategy Copilot</p>
           <h2>传播建议</h2>
         </div>
         <div className="panelActionRow">
@@ -140,7 +140,7 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
           <div className="insightSections">
           {analysisError ? (
             <section className="insightBlock insightBlockAlert">
-              <span className="insightLabel">Gemini 状态</span>
+              <span className="insightLabel">AI 状态</span>
               <p>{analysisError}</p>
             </section>
           ) : null}
@@ -148,9 +148,9 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
           {displayed ? (
             <section className={displayed.mode === "live" ? "insightBlock" : "insightBlock insightBlockAlert"}>
               <span className="insightLabel">分析模式</span>
-              <p>{displayed.mode === "live" ? "真实 Gemini 输出" : "规则兜底输出"}</p>
+              <p>{displayed.mode === "live" ? "真实 AI 输出" : "规则兜底输出"}</p>
               {displayed.mode === "fallback" ? (
-                <p>这版只是兜底策划，不代表 Gemini 已经真正结合你的品牌完成策划。</p>
+                <p>这版只是兜底策划，不代表 AI 已经真正结合你的品牌完成策划。</p>
               ) : null}
             </section>
           ) : null}

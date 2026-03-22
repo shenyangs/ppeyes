@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ analysis });
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown_error";
-      console.error("[api/analyze] Gemini live analysis failed:", reason);
+      console.error("[api/analyze] AI live analysis failed:", reason);
       return NextResponse.json({
         analysis: buildFallbackAnalysis(body.event, body.brandProfile),
         warning: "live_analysis_failed"

@@ -23,6 +23,10 @@ import { buildWorkspacePayload, type WorkspaceEvent, type WorkspacePayload, type
 const legacyDefaultPlatforms = ["微博", "抖音", "小红书"];
 const progressivePlatformDefaults = ["微博", "抖音", "B 站", "知乎", "百度"];
 
+function isLegacyPlatformSelection(platforms: string[]) {
+  return platforms.length === legacyDefaultPlatforms.length && platforms.every((platform) => legacyDefaultPlatforms.includes(platform));
+}
+
 function normalizeEventTitle(title: string) {
   return title.replace(/\s+/g, "").trim();
 }
@@ -78,7 +82,7 @@ export function BrandTrendWorkspace() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("全部");
   const [industryFilter, setIndustryFilter] = useState("全部");
   const [riskFilter, setRiskFilter] = useState<"全部" | "低" | "中" | "高">("全部");
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(legacyDefaultPlatforms);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(progressivePlatformDefaults);
   const [selectedWatchlists, setSelectedWatchlists] = useState<WatchlistType[]>([
     "品牌词",
     "竞品词",
@@ -101,7 +105,8 @@ export function BrandTrendWorkspace() {
     const controller = new AbortController();
     const requestId = workspaceRequestRef.current + 1;
     workspaceRequestRef.current = requestId;
-    const requestedPlatforms = selectedPlatforms.length > 0 ? selectedPlatforms : progressivePlatformDefaults;
+    const shouldHydrateProgressivePlatforms = selectedPlatforms.length === 0 || isLegacyPlatformSelection(selectedPlatforms);
+    const requestedPlatforms = shouldHydrateProgressivePlatforms ? progressivePlatformDefaults : selectedPlatforms;
     const baseQuery: WorkspaceQuery = {
       q: query.trim() || undefined,
       time: timeFilter !== "全部" ? timeFilter : undefined,
@@ -325,9 +330,7 @@ export function BrandTrendWorkspace() {
     if (!workspace?.availablePlatforms?.length) return;
 
     const availablePlatforms = workspace.availablePlatforms;
-    const hasOnlyLegacyDefaults =
-      selectedPlatforms.length === legacyDefaultPlatforms.length &&
-      selectedPlatforms.every((platform) => legacyDefaultPlatforms.includes(platform));
+    const hasOnlyLegacyDefaults = isLegacyPlatformSelection(selectedPlatforms);
 
     if (hasOnlyLegacyDefaults) {
       setSelectedPlatforms(availablePlatforms);
@@ -431,7 +434,7 @@ export function BrandTrendWorkspace() {
       !brandDraft.brief.trim() &&
       !brandDraft.capabilities.trim()
     ) {
-      setBrandAutofillError("先填一点品牌名、产品名或一句话，Gemini 才能帮你补完整。");
+      setBrandAutofillError("先填一点品牌名、产品名或一句话，AI 才能帮你补完整。");
       return;
     }
 
@@ -450,7 +453,7 @@ export function BrandTrendWorkspace() {
       });
 
       if (!response.ok) {
-        throw new Error(response.status === 400 ? "请先填写基础品牌信息。" : "Gemini 品牌填写失败");
+        throw new Error(response.status === 400 ? "请先填写基础品牌信息。" : "AI 品牌填写失败");
       }
 
       const payload = (await response.json()) as {
@@ -465,12 +468,12 @@ export function BrandTrendWorkspace() {
       setBrandDraft(payload.profile);
 
       if (payload.warning === "missing_ai_credentials") {
-        setBrandAutofillError("当前显示的是规则补全，不是真实 Gemini 生成的品牌视角。");
+        setBrandAutofillError("当前显示的是规则补全，不是真实 AI 生成的品牌视角。");
       } else if (payload.warning === "live_fill_failed") {
-        setBrandAutofillError("真实 Gemini 填写失败，当前显示的是规则补全结果。");
+        setBrandAutofillError("真实 AI 填写失败，当前显示的是规则补全结果。");
       }
     } catch (requestError) {
-      setBrandAutofillError(requestError instanceof Error ? requestError.message : "Gemini 品牌填写失败");
+      setBrandAutofillError(requestError instanceof Error ? requestError.message : "AI 品牌填写失败");
     } finally {
       setIsAutofillingBrand(false);
     }
@@ -567,7 +570,7 @@ export function BrandTrendWorkspace() {
       });
 
       if (!response.ok) {
-        throw new Error("Gemini 分析请求失败");
+        throw new Error("AI 分析请求失败");
       }
 
       const payload = (await response.json()) as {
@@ -587,16 +590,16 @@ export function BrandTrendWorkspace() {
       setAnalysisEventKey(targetEventKey);
 
       if (payload.warning === "missing_ai_credentials") {
-        setAnalysisError("当前显示的是规则兜底策划，不是真实 Gemini 的品牌策划结果。请检查 Gemini 配置。");
+        setAnalysisError("当前显示的是规则兜底策划，不是真实 AI 的品牌策划结果。请检查 AI 配置。");
       } else if (payload.warning === "live_analysis_failed") {
-        setAnalysisError("真实 Gemini 调用失败，当前显示的是规则兜底策划，不是最终品牌策划结果。");
+        setAnalysisError("真实 AI 调用失败，当前显示的是规则兜底策划，不是最终品牌策划结果。");
       }
     } catch (requestError) {
       if (requestId !== analysisRequestRef.current || selectedEventKeyRef.current !== targetEventKey) {
         return;
       }
 
-      setAnalysisError(requestError instanceof Error ? requestError.message : "Gemini 分析失败");
+      setAnalysisError(requestError instanceof Error ? requestError.message : "AI 分析失败");
     } finally {
       if (requestId === analysisRequestRef.current) {
         setIsAnalyzing(false);

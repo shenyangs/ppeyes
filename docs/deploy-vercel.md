@@ -18,8 +18,8 @@
 必填：
 
 - `GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta`
-- `GEMINI_API_KEY=<你的 Gemini API Key>`
-- `GEMINI_MODEL=gemini-2.5-pro`
+- `GEMINI_API_KEY=<你的 AI API Key>`
+- `GEMINI_MODEL=<你的模型 ID>`
 - `SUPABASE_URL=<你的 Supabase 项目 URL>`
 - `SUPABASE_SERVICE_ROLE_KEY=<你的 service role key>`
 

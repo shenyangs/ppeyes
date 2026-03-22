@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ profile: filledProfile });
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown_error";
-      console.error("[api/brand-lens] Gemini live fill failed:", reason);
+      console.error("[api/brand-lens] AI live fill failed:", reason);
       return NextResponse.json({
         profile: buildFallbackBrandProfile(profile),
         warning: "live_fill_failed"

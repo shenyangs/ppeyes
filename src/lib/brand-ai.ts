@@ -245,7 +245,7 @@ export async function enhanceEventsWithAiBrandView(
           item.verdict === "强策划" || item.verdict === "可策划" || item.verdict === "谨慎策划"
             ? item.verdict
             : "谨慎策划",
-        reason: item.reason || "Gemini 认为这条热点的品牌承接价值有限，需要谨慎判断。",
+        reason: item.reason || "AI 判断这条热点的品牌承接价值有限，需要谨慎判断。",
         angle: item.angle || "先从真实用户场景和品牌价值中寻找更可执行的传播切口。"
       });
     });

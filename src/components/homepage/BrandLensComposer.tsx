@@ -48,7 +48,7 @@ export function BrandLensComposer({
             </button>
           ) : null}
           <button className="ghostButton compact" type="button" disabled={isAutofilling} onClick={onAutofill}>
-            {isAutofilling ? "Gemini 填写中..." : "Gemini 一键填写"}
+            {isAutofilling ? "填写中..." : "一键填写"}
           </button>
           <button className="ghostButton compact" type="button" onClick={handleClear}>
             清空
