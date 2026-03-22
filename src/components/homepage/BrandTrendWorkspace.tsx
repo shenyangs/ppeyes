@@ -22,6 +22,7 @@ import { buildWorkspacePayload, type WorkspaceEvent, type WorkspacePayload, type
 
 const legacyDefaultPlatforms = ["微博", "抖音", "小红书"];
 const progressivePlatformDefaults = ["微博", "抖音", "B 站", "知乎", "百度"];
+const mobileInsightBreakpoint = 960;
 
 function isLegacyPlatformSelection(platforms: string[]) {
   return platforms.length === legacyDefaultPlatforms.length && platforms.every((platform) => legacyDefaultPlatforms.includes(platform));
@@ -91,6 +92,8 @@ export function BrandTrendWorkspace() {
   const [sortMode, setSortMode] = useState<SortMode>("opportunity");
   const [activeMetric, setActiveMetric] = useState<MetricKey>("all");
   const [selectedEventKey, setSelectedEventKey] = useState<string | null>(null);
+  const [isMobileInsightLayout, setIsMobileInsightLayout] = useState(false);
+  const [isMobileInsightOpen, setIsMobileInsightOpen] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState<{ loaded: number; total: number; stage: string } | null>(null);
   const [analysisEventKey, setAnalysisEventKey] = useState<string | null>(null);
   const analysisRequestRef = useRef(0);
@@ -100,6 +103,33 @@ export function BrandTrendWorkspace() {
   useEffect(() => {
     selectedEventKeyRef.current = selectedEventKey;
   }, [selectedEventKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia(`(max-width: ${mobileInsightBreakpoint}px)`);
+    const updateLayout = () => {
+      setIsMobileInsightLayout(mediaQuery.matches);
+      if (!mediaQuery.matches) {
+        setIsMobileInsightOpen(false);
+      }
+    };
+
+    updateLayout();
+    mediaQuery.addEventListener("change", updateLayout);
+    return () => mediaQuery.removeEventListener("change", updateLayout);
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (!isMobileInsightLayout || !isMobileInsightOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobileInsightLayout, isMobileInsightOpen]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -468,9 +498,9 @@ export function BrandTrendWorkspace() {
       setBrandDraft(payload.profile);
 
       if (payload.warning === "missing_ai_credentials") {
-        setBrandAutofillError("当前显示的是规则补全，不是真实 AI 生成的品牌视角。");
+        setBrandAutofillError("当前显示的是系统补全结果，建议检查 AI 配置后再生成。");
       } else if (payload.warning === "live_fill_failed") {
-        setBrandAutofillError("真实 AI 填写失败，当前显示的是规则补全结果。");
+        setBrandAutofillError("本次智能填写未完成，当前显示系统补全结果。");
       }
     } catch (requestError) {
       setBrandAutofillError(requestError instanceof Error ? requestError.message : "AI 品牌填写失败");
@@ -498,20 +528,13 @@ export function BrandTrendWorkspace() {
     }
   }
 
-  function shouldFocusInsightPanelOnMobile() {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(max-width: 1200px)").matches;
+  function openMobileInsightModal() {
+    if (!isMobileInsightLayout) return;
+    setIsMobileInsightOpen(true);
   }
 
-  function focusInsightPanelOnMobile() {
-    if (!shouldFocusInsightPanelOnMobile()) return;
-
-    requestAnimationFrame(() => {
-      insightPanelRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    });
+  function closeMobileInsightModal() {
+    setIsMobileInsightOpen(false);
   }
 
   function handleSelectEvent(event: WorkspaceEvent, anchorTop?: number) {
@@ -523,7 +546,7 @@ export function BrandTrendWorkspace() {
 
   function handleViewSuggestions(event: WorkspaceEvent, anchorTop?: number) {
     handleSelectEvent(event, anchorTop);
-    focusInsightPanelOnMobile();
+    openMobileInsightModal();
   }
 
   async function handleSaveOpportunity(event: (typeof filteredEvents)[number]) {
@@ -611,9 +634,9 @@ export function BrandTrendWorkspace() {
       setAnalysisEventKey(targetEventKey);
 
       if (payload.warning === "missing_ai_credentials") {
-        setAnalysisError("当前显示的是规则兜底策划，不是真实 AI 的品牌策划结果。请检查 AI 配置。");
+        setAnalysisError("当前显示的是系统参考方案，建议检查 AI 配置后再生成。");
       } else if (payload.warning === "live_analysis_failed") {
-        setAnalysisError("真实 AI 调用失败，当前显示的是规则兜底策划，不是最终品牌策划结果。");
+        setAnalysisError("本次智能生成未完成，当前显示系统参考方案。");
       }
     } catch (requestError) {
       if (requestId !== analysisRequestRef.current || selectedEventKeyRef.current !== targetEventKey) {
@@ -629,7 +652,7 @@ export function BrandTrendWorkspace() {
   }
 
   async function handleGenerateFromFeed(event: WorkspaceEvent, anchorTop?: number) {
-    focusInsightPanelOnMobile();
+    openMobileInsightModal();
     await handleAnalyze(event, anchorTop);
   }
 
@@ -669,6 +692,7 @@ export function BrandTrendWorkspace() {
     isAnalyzing && analysisEventKey
       ? filteredEvents.find((event) => getEventSelectionKey(event) === analysisEventKey)?.id ?? null
       : null;
+  const showMobileInsightModal = isMobileInsightLayout && isMobileInsightOpen;
 
   return (
     <AppShell
@@ -709,7 +733,7 @@ export function BrandTrendWorkspace() {
             <span className="activeFilterChip">排序：{filterOptions.sort.find((item) => item.key === sortMode)?.label}</span>
             {workspace ? (
               <span className="activeFilterChip">
-                数据源：{workspace.source === "live" ? "asnewsnow / 微博热榜" : "本地兜底样本"}
+                数据源：{workspace.source === "live" ? "实时热榜" : "系统参考样本"}
               </span>
             ) : null}
             {brandProfile ? (
@@ -783,17 +807,45 @@ export function BrandTrendWorkspace() {
                 sortOptions={filterOptions.sort}
               />
 
-            <div
-              className="insightRail"
-              ref={insightRailRef}
-              style={insightRailHeight ? { minHeight: `${insightRailHeight}px` } : undefined}
-            >
+            {!isMobileInsightLayout ? (
+              <div
+                className="insightRail"
+                ref={insightRailRef}
+                style={insightRailHeight ? { minHeight: `${insightRailHeight}px` } : undefined}
+              >
+                <InsightPanel
+                  ref={insightPanelRef}
+                  event={selectedEvent}
+                  brandProfile={brandProfile}
+                  topOffset={insightPanelTop}
+                  isFloating
+                  onSaveOpportunity={handleSaveOpportunity}
+                  savingEventId={savingEventId}
+                  analysis={visibleAnalysis}
+                  isAnalyzing={visibleIsAnalyzing}
+                  analysisError={visibleAnalysisError}
+                  onAnalyze={handleAnalyze}
+                />
+              </div>
+            ) : null}
+          </section>
+        )}
+
+        {showMobileInsightModal ? (
+          <div
+            aria-modal="true"
+            className="mobileInsightOverlay"
+            role="dialog"
+            onClick={closeMobileInsightModal}
+          >
+            <div className="mobileInsightSheet" onClick={(event) => event.stopPropagation()}>
               <InsightPanel
                 ref={insightPanelRef}
                 event={selectedEvent}
                 brandProfile={brandProfile}
-                topOffset={insightPanelTop}
-                isFloating
+                topOffset={0}
+                isModal
+                onClose={closeMobileInsightModal}
                 onSaveOpportunity={handleSaveOpportunity}
                 savingEventId={savingEventId}
                 analysis={visibleAnalysis}
@@ -802,8 +854,8 @@ export function BrandTrendWorkspace() {
                 onAnalyze={handleAnalyze}
               />
             </div>
-          </section>
-        )}
+          </div>
+        ) : null}
 
     </AppShell>
   );

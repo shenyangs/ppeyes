@@ -8,6 +8,8 @@ type InsightPanelProps = {
   brandProfile: BrandProfile | null;
   topOffset: number;
   isFloating?: boolean;
+  isModal?: boolean;
+  onClose?: () => void;
   onSaveOpportunity: (event: WorkspaceEvent) => void;
   savingEventId: string | null;
   analysis: EventAnalysis | null;
@@ -21,6 +23,8 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
   brandProfile,
   topOffset,
   isFloating = false,
+  isModal = false,
+  onClose,
   onSaveOpportunity,
   savingEventId,
   analysis,
@@ -74,30 +78,54 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
   }, [analysis?.mode, event?.id, isFloating, topOffset]);
 
   const displayed = analysis;
+  const analyzeButtonLabel = isAnalyzing
+    ? "生成中..."
+    : isModal
+      ? analysis?.mode === "live"
+        ? "再生成创意"
+        : "生成创意"
+      : analysis?.mode === "live"
+        ? "再生成一版"
+        : "品牌视角分析";
 
   return (
     <aside
-      className={isFloating ? "panel insightPanel insightPanelFloating" : "panel insightPanel"}
+      className={
+        isModal
+          ? "panel insightPanel insightPanelModal"
+          : isFloating
+            ? "panel insightPanel insightPanelFloating"
+            : "panel insightPanel"
+      }
       ref={bindPanelRef}
-      style={{
-        top: `${topOffset}px`,
-        height: isFloating && viewportPanelHeight ? `${viewportPanelHeight}px` : undefined,
-        maxHeight:
-          isFloating && viewportPanelHeight
-            ? `${viewportPanelHeight}px`
-            : isFloating
-              ? `calc(100dvh - 24px)`
-              : `calc(100dvh - ${topOffset + 20}px)`
-      }}
+      style={
+        isModal
+          ? undefined
+          : {
+              top: `${topOffset}px`,
+              height: isFloating && viewportPanelHeight ? `${viewportPanelHeight}px` : undefined,
+              maxHeight:
+                isFloating && viewportPanelHeight
+                  ? `${viewportPanelHeight}px`
+                  : isFloating
+                    ? `calc(100dvh - 24px)`
+                    : `calc(100dvh - ${topOffset + 20}px)`
+            }
+      }
     >
       <div className="panelHeader">
         <div>
-          <p className="panelKicker">AI Strategy Copilot</p>
+          <p className="panelKicker">智能传播助手</p>
           <h2>传播建议</h2>
         </div>
         <div className="panelActionRow">
+          {isModal && onClose ? (
+            <button className="ghostButton compact" type="button" onClick={onClose}>
+              关闭
+            </button>
+          ) : null}
           <button className="ghostButton compact" type="button" disabled={!event || isAnalyzing} onClick={onAnalyze}>
-            {isAnalyzing ? "分析中..." : analysis?.mode === "live" ? "再生成一版" : "品牌视角分析"}
+            {analyzeButtonLabel}
           </button>
         </div>
       </div>
@@ -147,10 +175,10 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
 
           {displayed ? (
             <section className={displayed.mode === "live" ? "insightBlock" : "insightBlock insightBlockAlert"}>
-              <span className="insightLabel">分析模式</span>
-              <p>{displayed.mode === "live" ? "真实 AI 输出" : "规则兜底输出"}</p>
+              <span className="insightLabel">结果来源</span>
+              <p>{displayed.mode === "live" ? "智能生成" : "系统参考方案"}</p>
               {displayed.mode === "fallback" ? (
-                <p>这版只是兜底策划，不代表 AI 已经真正结合你的品牌完成策划。</p>
+                <p>这版为系统参考方案，建议补充信息后重新生成。</p>
               ) : null}
             </section>
           ) : null}

@@ -111,6 +111,7 @@ button:disabled {
     rgba(255, 255, 255, 0.32);
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
+  overflow-x: clip;
 }
 
 .topBar,
@@ -576,6 +577,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .field span {
@@ -587,6 +589,9 @@ button:disabled {
 .field select,
 .field textarea {
   min-height: 46px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -1015,6 +1020,38 @@ button:disabled {
   will-change: top;
 }
 
+.mobileInsightOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(31, 22, 11, 0.4);
+  backdrop-filter: blur(2px);
+}
+
+.mobileInsightSheet {
+  width: min(100%, 680px);
+  max-height: calc(100dvh - 24px);
+}
+
+.insightPanelModal {
+  height: min(86dvh, 820px);
+  max-height: calc(100dvh - 24px);
+  border-radius: 24px;
+}
+
+.insightPanelModal .panelHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  background: linear-gradient(180deg, rgba(255, 252, 246, 0.95), rgba(255, 252, 246, 0.86));
+}
+
 .insightBody {
   min-height: 0;
   overflow-y: auto;
@@ -1232,5 +1269,25 @@ button:disabled {
   .insightBody {
     overflow: visible;
     padding-right: 0;
+  }
+
+  .mobileInsightOverlay {
+    padding: 8px;
+  }
+
+  .mobileInsightSheet {
+    width: 100%;
+    max-height: calc(100dvh - 16px);
+  }
+
+  .insightPanelModal {
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 20px;
+  }
+
+  .insightPanelModal .insightBody {
+    overflow: auto;
+    padding-right: 4px;
   }
 }
