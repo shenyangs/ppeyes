@@ -1,4 +1,6 @@
 import https from "https";
+import { promises as fs } from "fs";
+import path from "path";
 import { sampleEvents, type EventAction, type EventItem, type EventSentiment, type EventTrend } from "@/lib/homepage-data";
 
 type NewsNowItem = {
@@ -73,12 +75,81 @@ const NEWSNOW_REQUEST_TIMEOUT_MS = 7000;
 const NEWSNOW_MAX_ITEMS_PER_SOURCE = 24;
 const NEWSNOW_MAX_MERGED_EVENTS = 120;
 const NEWSNOW_STALE_SNAPSHOT_MAX_AGE_MS = 1000 * 60 * 60 * 12;
+const NEWSNOW_MAX_SOURCE_AGE_MS = 1000 * 60 * 60 * 18;
+const NEWSNOW_SNAPSHOT_FILE = path.join(process.cwd(), "data", "newsnow-live-snapshot.json");
 
 let latestLiveSnapshot: {
   events: EventItem[];
   fetchedAt: string;
   cachedAt: number;
 } | null = null;
+
+async function persistSnapshotToDisk(snapshot: { events: EventItem[]; fetchedAt: string; cachedAt: number }) {
+  try {
+    await fs.mkdir(path.dirname(NEWSNOW_SNAPSHOT_FILE), { recursive: true });
+    await fs.writeFile(NEWSNOW_SNAPSHOT_FILE, JSON.stringify(snapshot), "utf8");
+  } catch {}
+}
+
+async function loadSnapshotFromDisk(maxAgeMs = NEWSNOW_STALE_SNAPSHOT_MAX_AGE_MS) {
+  try {
+    const raw = await fs.readFile(NEWSNOW_SNAPSHOT_FILE, "utf8");
+    const parsed = JSON.parse(raw) as {
+      events?: EventItem[];
+      fetchedAt?: string;
+      cachedAt?: number;
+    };
+
+    if (!Array.isArray(parsed.events) || typeof parsed.fetchedAt !== "string") {
+      return null;
+    }
+
+    const cachedAt = typeof parsed.cachedAt === "number" ? parsed.cachedAt : new Date(parsed.fetchedAt).getTime();
+    if (!Number.isFinite(cachedAt)) {
+      return null;
+    }
+
+    if (Date.now() - cachedAt > maxAgeMs) {
+      return null;
+    }
+
+    return {
+      events: parsed.events,
+      fetchedAt: parsed.fetchedAt,
+      cachedAt
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function loadLatestNewsNowSnapshot(maxAgeMs = NEWSNOW_STALE_SNAPSHOT_MAX_AGE_MS): Promise<{
+  events: EventItem[];
+  fetchedAt: string;
+  source: "snapshot";
+} | null> {
+  const inMemoryFresh =
+    latestLiveSnapshot && Date.now() - latestLiveSnapshot.cachedAt <= maxAgeMs ? latestLiveSnapshot : null;
+
+  if (inMemoryFresh) {
+    return {
+      events: inMemoryFresh.events,
+      fetchedAt: inMemoryFresh.fetchedAt,
+      source: "snapshot"
+    };
+  }
+
+  const diskSnapshot = await loadSnapshotFromDisk(maxAgeMs);
+  if (!diskSnapshot) return null;
+
+  latestLiveSnapshot = diskSnapshot;
+
+  return {
+    events: diskSnapshot.events,
+    fetchedAt: diskSnapshot.fetchedAt,
+    source: "snapshot"
+  };
+}
 
 function inferSentiment(title: string): EventSentiment {
   const negativeWords = [
@@ -345,10 +416,15 @@ async function fetchNewsNowSource(source: NewsNowSourceConfig): Promise<{
               throw new Error(`invalid_newsnow_payload_${source.id}`);
             }
 
-              resolve({
-                events: normalizeNewsNowItems(parsed.items, source, parsed.updatedTime || Date.now()),
-                fetchedAt: new Date(parsed.updatedTime || Date.now()).toISOString()
-              });
+            const updatedTimeMs = Number(parsed.updatedTime) || Date.now();
+            if (Date.now() - updatedTimeMs > NEWSNOW_MAX_SOURCE_AGE_MS) {
+              throw new Error(`stale_newsnow_source_${source.id}`);
+            }
+
+            resolve({
+              events: normalizeNewsNowItems(parsed.items, source, updatedTimeMs),
+              fetchedAt: new Date(updatedTimeMs).toISOString()
+            });
           } catch (error) {
             reject(error);
           }
@@ -388,16 +464,8 @@ export async function fetchNewsNowSources(platformLabels?: string[]): Promise<{
     .map((result) => result.value);
 
   if (successful.length === 0) {
-    const snapshot = latestLiveSnapshot;
-    const snapshotStillFresh = snapshot && Date.now() - snapshot.cachedAt <= NEWSNOW_STALE_SNAPSHOT_MAX_AGE_MS;
-
-    if (snapshotStillFresh && snapshot) {
-      return {
-        events: snapshot.events,
-        fetchedAt: snapshot.fetchedAt,
-        source: "snapshot"
-      };
-    }
+    const snapshot = await loadLatestNewsNowSnapshot();
+    if (snapshot) return snapshot;
 
     throw new Error("newsnow_sources_unavailable");
   }
@@ -413,6 +481,7 @@ export async function fetchNewsNowSources(platformLabels?: string[]): Promise<{
     fetchedAt,
     cachedAt: Date.now()
   };
+  await persistSnapshotToDisk(latestLiveSnapshot);
 
   return {
     events: mergedEvents,
