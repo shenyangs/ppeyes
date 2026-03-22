@@ -108,6 +108,16 @@ export function BrandTrendWorkspace() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    const interval = window.setInterval(() => {
+      setRefreshToken((current) => current + 1);
+    }, 1000 * 60 * 5);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const mediaQuery = window.matchMedia(`(max-width: ${mobileInsightBreakpoint}px)`);
     const updateLayout = () => {
       setIsMobileInsightLayout(mediaQuery.matches);
@@ -683,6 +693,10 @@ export function BrandTrendWorkspace() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function handleManualRefresh() {
+    setRefreshToken((current) => current + 1);
+  }
+
   const visibleAnalysis =
     selectedEvent && analysisEventKey === getEventSelectionKey(selectedEvent) ? analysis : null;
   const visibleAnalysisError =
@@ -742,7 +756,7 @@ export function BrandTrendWorkspace() {
           )
         }
       >
-        <TopBar query={query} onQueryChange={setQuery} />
+        <TopBar query={query} onQueryChange={setQuery} onRefresh={handleManualRefresh} isRefreshing={isLoading} />
 
         <SummaryMetrics
           cards={metricCards}
@@ -767,7 +781,12 @@ export function BrandTrendWorkspace() {
             <span className="activeFilterChip">排序：{filterOptions.sort.find((item) => item.key === sortMode)?.label}</span>
             {workspace ? (
               <span className="activeFilterChip">
-                数据源：{workspace.source === "live" ? "实时热榜" : "系统参考样本"}
+                数据源：
+                {workspace.source === "live"
+                  ? "实时热榜"
+                  : workspace.source === "snapshot"
+                    ? "实时快照（最近一次成功拉取）"
+                    : "系统参考样本"}
               </span>
             ) : null}
             {brandProfile ? (
@@ -785,7 +804,11 @@ export function BrandTrendWorkspace() {
           </div>
           <span className="resultsHint">
             {saveMessage ? `${saveMessage} · ` : ""}
-            {workspace ? `更新于 ${new Date(workspace.fetchedAt).toLocaleString("zh-CN", { hour12: false })} · ` : ""}
+            {workspace
+              ? `更新于 ${new Date(workspace.fetchedAt).toLocaleString("zh-CN", { hour12: false })} · ${
+                  workspace.source === "snapshot" ? "实时源波动，当前展示最近一次成功快照 · " : ""
+                }`
+              : ""}
             {loadingProgress ? `${loadingProgress.stage} ${loadingProgress.loaded}/${loadingProgress.total} · ` : ""}
             匹配到 {filteredEvents.length} 条事件
           </span>

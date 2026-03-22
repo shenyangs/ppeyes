@@ -97,7 +97,7 @@ export type WorkspacePayload = {
     detail: string;
   }[];
   fetchedAt: string;
-  source: "live" | "fallback";
+  source: "live" | "snapshot" | "fallback";
   brandProfile: BrandProfile | null;
   availablePlatforms: string[];
 };
@@ -253,7 +253,7 @@ export function buildWorkspacePayload(
   query: WorkspaceQuery = {},
   savedEventIds: string[] = [],
   inputEvents: WorkspaceEvent[] = sampleEvents,
-  source: "live" | "fallback" = "fallback",
+  source: "live" | "snapshot" | "fallback" = "fallback",
   fetchedAt = "2026-03-22T11:30:00+08:00"
 ): WorkspacePayload {
   const {

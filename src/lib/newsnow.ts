@@ -69,6 +69,16 @@ export const NEWSNOW_SOURCES: NewsNowSourceConfig[] = [
 ];
 
 const NEWSNOW_BASE_URL = "https://asnewsnow.iepose.cn/api/s?id=";
+const NEWSNOW_REQUEST_TIMEOUT_MS = 7000;
+const NEWSNOW_MAX_ITEMS_PER_SOURCE = 24;
+const NEWSNOW_MAX_MERGED_EVENTS = 120;
+const NEWSNOW_STALE_SNAPSHOT_MAX_AGE_MS = 1000 * 60 * 60 * 12;
+
+let latestLiveSnapshot: {
+  events: EventItem[];
+  fetchedAt: string;
+  cachedAt: number;
+} | null = null;
 
 function inferSentiment(title: string): EventSentiment {
   const negativeWords = [
@@ -235,7 +245,7 @@ function buildFirstSeen(index: number) {
 }
 
 function normalizeNewsNowItems(items: NewsNowItem[], source: NewsNowSourceConfig): EventItem[] {
-  return items.slice(0, 18).map((item, index) => {
+  return items.slice(0, NEWSNOW_MAX_ITEMS_PER_SOURCE).map((item, index) => {
     const sentiment = inferSentiment(item.title);
     const risk = inferRisk(sentiment);
     const action = inferAction(risk, item.title);
@@ -283,49 +293,53 @@ async function fetchNewsNowSource(source: NewsNowSourceConfig): Promise<{
   events: EventItem[];
   fetchedAt: string;
 }> {
-  const targetUrl = `${NEWSNOW_BASE_URL}${source.id}&latest`;
+  const targetUrl = `${NEWSNOW_BASE_URL}${source.id}&latest&_ts=${Date.now()}`;
 
   return new Promise((resolve, reject) => {
-    https
-      .get(
-        targetUrl,
-        {
-          rejectUnauthorized: false
-        },
-        (response) => {
-          const chunks: Buffer[] = [];
+    const request = https.get(
+      targetUrl,
+      {
+        rejectUnauthorized: false
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
 
-          response.on("data", (chunk) => {
-            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-          });
+        response.on("data", (chunk) => {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        });
 
-          response.on("end", () => {
-            try {
-              const raw = Buffer.concat(chunks).toString("utf8");
-              const parsed = JSON.parse(raw) as NewsNowResponse;
+        response.on("end", () => {
+          try {
+            const raw = Buffer.concat(chunks).toString("utf8");
+            const parsed = JSON.parse(raw) as NewsNowResponse;
 
-              if (parsed.status !== "success" || !Array.isArray(parsed.items)) {
-                throw new Error(`invalid_newsnow_payload_${source.id}`);
-              }
-
-              resolve({
-                events: normalizeNewsNowItems(parsed.items, source),
-                fetchedAt: new Date(parsed.updatedTime || Date.now()).toISOString()
-              });
-            } catch (error) {
-              reject(error);
+            if (parsed.status !== "success" || !Array.isArray(parsed.items)) {
+              throw new Error(`invalid_newsnow_payload_${source.id}`);
             }
-          });
-        }
-      )
-      .on("error", reject);
+
+            resolve({
+              events: normalizeNewsNowItems(parsed.items, source),
+              fetchedAt: new Date(parsed.updatedTime || Date.now()).toISOString()
+            });
+          } catch (error) {
+            reject(error);
+          }
+        });
+      }
+    );
+
+    request.setTimeout(NEWSNOW_REQUEST_TIMEOUT_MS, () => {
+      request.destroy(new Error(`newsnow_timeout_${source.id}`));
+    });
+
+    request.on("error", reject);
   });
 }
 
 export async function fetchNewsNowMultiSource(): Promise<{
   events: EventItem[];
   fetchedAt: string;
-  source: "live";
+  source: "live" | "snapshot";
 }> {
   return fetchNewsNowSources();
 }
@@ -333,7 +347,7 @@ export async function fetchNewsNowMultiSource(): Promise<{
 export async function fetchNewsNowSources(platformLabels?: string[]): Promise<{
   events: EventItem[];
   fetchedAt: string;
-  source: "live";
+  source: "live" | "snapshot";
 }> {
   const targetSources =
     platformLabels && platformLabels.length > 0
@@ -346,14 +360,31 @@ export async function fetchNewsNowSources(platformLabels?: string[]): Promise<{
     .map((result) => result.value);
 
   if (successful.length === 0) {
+    const snapshot = latestLiveSnapshot;
+    const snapshotStillFresh = snapshot && Date.now() - snapshot.cachedAt <= NEWSNOW_STALE_SNAPSHOT_MAX_AGE_MS;
+
+    if (snapshotStillFresh && snapshot) {
+      return {
+        events: snapshot.events,
+        fetchedAt: snapshot.fetchedAt,
+        source: "snapshot"
+      };
+    }
+
     throw new Error("newsnow_sources_unavailable");
   }
 
-  const mergedEvents = dedupeEvents(successful.flatMap((result) => result.events)).slice(0, 90);
+  const mergedEvents = dedupeEvents(successful.flatMap((result) => result.events)).slice(0, NEWSNOW_MAX_MERGED_EVENTS);
   const fetchedAt = successful
     .map((result) => result.fetchedAt)
     .sort()
     .reverse()[0];
+
+  latestLiveSnapshot = {
+    events: mergedEvents,
+    fetchedAt,
+    cachedAt: Date.now()
+  };
 
   return {
     events: mergedEvents,

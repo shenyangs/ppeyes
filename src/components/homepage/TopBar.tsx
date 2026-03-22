@@ -4,10 +4,26 @@ import { AppHeader } from "@/components/layout/AppHeader";
 type TopBarProps = {
   query: string;
   onQueryChange: (value: string) => void;
+  onRefresh: () => void;
+  isRefreshing?: boolean;
 };
 
-export function TopBar({ query, onQueryChange }: TopBarProps) {
+function getCurrentDateMeta() {
+  const now = new Date();
+  const weekday = now.toLocaleDateString("zh-CN", { weekday: "short" });
+  const dateLabel = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
+
+  return {
+    weekday,
+    dateLabel
+  };
+}
+
+export function TopBar({ query, onQueryChange, onRefresh, isRefreshing = false }: TopBarProps) {
   const [draftQuery, setDraftQuery] = useState(query);
+  const { weekday, dateLabel } = getCurrentDateMeta();
 
   useEffect(() => {
     setDraftQuery(query);
@@ -38,11 +54,11 @@ export function TopBar({ query, onQueryChange }: TopBarProps) {
           </button>
         </form>
         <div className="dateBadge">
-          <span>周日</span>
-          <strong>2026.03.22</strong>
+          <span>{weekday}</span>
+          <strong>{dateLabel}</strong>
         </div>
-        <button className="ghostButton" type="button">
-          刷新热度
+        <button className="ghostButton" type="button" disabled={isRefreshing} onClick={onRefresh}>
+          {isRefreshing ? "刷新中..." : "刷新热度"}
         </button>
         <button className="primaryButton" type="button">
           生成今日简报

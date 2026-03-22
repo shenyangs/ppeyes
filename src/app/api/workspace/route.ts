@@ -4,6 +4,9 @@ import { buildFallbackNewsNow, fetchNewsNowSources } from "@/lib/newsnow";
 import { enhanceEventsWithAiBrandView } from "@/lib/brand-ai";
 import { getState } from "@/lib/storage";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const deferAi = searchParams.get("deferAi") === "1";
@@ -48,6 +51,11 @@ export async function GET(request: Request) {
       rankedEvents,
       upstream.source,
       upstream.fetchedAt
-    )
+    ),
+    {
+      headers: {
+        "Cache-Control": "no-store, max-age=0"
+      }
+    }
   );
 }
