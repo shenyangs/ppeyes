@@ -1,6 +1,6 @@
 import { emptyBrandProfile, normalizeBrandProfile, type BrandProfile } from "@/lib/brand";
 import type { AiSettings } from "@/lib/analysis";
-import { cleanJsonBlock, runAiTextPrompt } from "@/lib/gemini";
+import { parseModelJson, runAiTextPrompt } from "@/lib/gemini";
 
 function getSystemInstruction() {
   return "你是中国品牌传播策略顾问。你要把零散品牌信息补全成可用于热点策划的品牌视角 brief。你只能输出有效 JSON。";
@@ -68,7 +68,7 @@ export async function runBrandProfileFill(
     temperature: 0.6
   });
 
-  const parsed = JSON.parse(cleanJsonBlock(content)) as Partial<BrandProfile>;
+  const parsed = parseModelJson<Partial<BrandProfile>>(content);
   const fallback = buildFallbackBrandProfile(profile);
 
   return {

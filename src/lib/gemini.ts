@@ -74,6 +74,67 @@ export function cleanJsonBlock(input: string) {
     .trim();
 }
 
+function extractFirstJsonCandidate(input: string) {
+  const cleaned = cleanJsonBlock(input);
+  const startIndex = cleaned.search(/[\[{]/);
+
+  if (startIndex === -1) {
+    return cleaned;
+  }
+
+  const opening = cleaned[startIndex];
+  const closing = opening === "{" ? "}" : "]";
+  let depth = 0;
+  let inString = false;
+  let isEscaped = false;
+
+  for (let index = startIndex; index < cleaned.length; index += 1) {
+    const char = cleaned[index];
+
+    if (inString) {
+      if (isEscaped) {
+        isEscaped = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        isEscaped = true;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = false;
+      }
+
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === opening) {
+      depth += 1;
+      continue;
+    }
+
+    if (char === closing) {
+      depth -= 1;
+
+      if (depth === 0) {
+        return cleaned.slice(startIndex, index + 1).trim();
+      }
+    }
+  }
+
+  return cleaned.slice(startIndex).trim();
+}
+
+export function parseModelJson<T>(input: string) {
+  return JSON.parse(extractFirstJsonCandidate(input)) as T;
+}
+
 function shouldUseInsecureTls(url: URL) {
   return (
     url.hostname === "moacode.org" ||
@@ -89,6 +150,16 @@ function normalizeBaseUrl(baseUrl: string | undefined, defaultBaseUrl: string) {
 
 function normalizeModel(model: string | undefined, defaultModel: string) {
   return model?.trim().replace(/^models\//, "") || defaultModel;
+}
+
+function normalizeMiniMaxEndpoint(baseUrl: string) {
+  const trimmed = baseUrl.trim().replace(/\/$/, "");
+
+  if (trimmed.endsWith("/chat/completions") || trimmed.endsWith("/text/chatcompletion_v2")) {
+    return trimmed;
+  }
+
+  return `${trimmed}/chat/completions`;
 }
 
 async function postJson<T>(
@@ -311,7 +382,7 @@ async function runMiniMaxTextPromptWithProvider({
 }) {
   const baseUrl = normalizeBaseUrl(settings.baseUrl, DEFAULT_MINIMAX_BASE_URL);
   const model = normalizeModel(settings.model, DEFAULT_MINIMAX_MODEL);
-  const endpoint = new URL(`${baseUrl}/chat/completions`);
+  const endpoint = new URL(normalizeMiniMaxEndpoint(baseUrl));
   const attempts = Math.max(1, maxAttempts || MAX_RETRY_ATTEMPTS);
 
   let status = 500;
@@ -332,6 +403,7 @@ async function runMiniMaxTextPromptWithProvider({
             content: prompt
           }
         ],
+        reasoning_split: true,
         ...(typeof temperature === "number" ? { temperature } : {})
       },
       timeoutMs,

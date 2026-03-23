@@ -1,6 +1,6 @@
 import { buildBrandView, normalizeBrandProfile, type BrandProfile, type BrandView } from "@/lib/brand";
 import type { AiSettings } from "@/lib/analysis";
-import { cleanJsonBlock, getEnvAiSettings, runAiTextPrompt } from "@/lib/gemini";
+import { getEnvAiSettings, parseModelJson, runAiTextPrompt } from "@/lib/gemini";
 import type { EventItem } from "@/lib/homepage-data";
 import type { WorkspaceEvent } from "@/lib/page-data";
 
@@ -98,7 +98,7 @@ async function runBrandRanking(events: WorkspaceEvent[], brandProfile: BrandProf
     maxAttempts: 1
   });
 
-  const parsed = JSON.parse(cleanJsonBlock(content)) as { items?: RankedBrandView[] };
+  const parsed = parseModelJson<{ items?: RankedBrandView[] }>(content);
   return parsed.items || [];
 }
 

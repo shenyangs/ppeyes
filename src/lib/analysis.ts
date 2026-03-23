@@ -1,5 +1,5 @@
 import { buildBrandView, normalizeBrandProfile, type BrandProfile } from "@/lib/brand";
-import { cleanJsonBlock, runAiTextPrompt, type AiSettings } from "@/lib/gemini";
+import { parseModelJson, runAiTextPrompt, type AiSettings } from "@/lib/gemini";
 import type { EventItem } from "@/lib/homepage-data";
 export type { AiSettings } from "@/lib/gemini";
 
@@ -235,7 +235,7 @@ export async function runGeminiAnalysis(
     temperature: 0.7
   });
 
-  const parsed = JSON.parse(cleanJsonBlock(content)) as Partial<Omit<EventAnalysis, "mode">>;
+  const parsed = parseModelJson<Partial<Omit<EventAnalysis, "mode">>>(content);
   const fallback = buildFallbackAnalysis(event, brandProfile);
 
   return {
