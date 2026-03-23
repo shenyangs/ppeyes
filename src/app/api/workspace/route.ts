@@ -30,7 +30,13 @@ export async function GET(request: Request) {
     }
   };
 
-  const state = await getState();
+  let savedEventIds: string[] = [];
+  try {
+    const state = await getState();
+    savedEventIds = state.savedOpportunities.map((item) => item.eventId);
+  } catch {
+    savedEventIds = [];
+  }
   let upstream:
     | Awaited<ReturnType<typeof fetchNewsNowSources>>
     | Awaited<ReturnType<typeof loadLatestNewsNowSnapshot>>
@@ -56,14 +62,19 @@ export async function GET(request: Request) {
     upstream = buildFallbackNewsNow();
   }
 
-  const rankedEvents = deferAi
-    ? upstream.events.map((event) => ({ ...event }))
-    : await enhanceEventsWithAiBrandView(upstream.events, query.brandProfile);
+  let rankedEvents = upstream.events.map((event) => ({ ...event }));
+  if (!deferAi) {
+    try {
+      rankedEvents = await enhanceEventsWithAiBrandView(upstream.events, query.brandProfile);
+    } catch {
+      rankedEvents = upstream.events.map((event) => ({ ...event }));
+    }
+  }
 
   return NextResponse.json(
     buildWorkspacePayload(
       query,
-      state.savedOpportunities.map((item) => item.eventId),
+      savedEventIds,
       rankedEvents,
       upstream.source,
       upstream.fetchedAt

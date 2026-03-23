@@ -30,6 +30,7 @@ type GeminiResponse = {
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 const MAX_RETRY_ATTEMPTS = 3;
 const BASE_RETRY_DELAY_MS = 600;
+const GEMINI_REQUEST_TIMEOUT_MS = 10000;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -61,7 +62,8 @@ function normalizeModel(model?: string) {
 
 async function postJson<T>(
   url: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  timeoutMs = GEMINI_REQUEST_TIMEOUT_MS
 ): Promise<{ status: number; payload: T }> {
   return new Promise((resolve, reject) => {
     const target = new URL(url);
@@ -109,6 +111,9 @@ async function postJson<T>(
     );
 
     request.on("error", reject);
+    request.setTimeout(timeoutMs, () => {
+      request.destroy(new Error("gemini_timeout"));
+    });
     request.write(rawBody);
     request.end();
   });
@@ -130,23 +135,30 @@ export async function runGeminiTextPrompt({
   prompt,
   systemInstruction,
   settings,
-  temperature
+  temperature,
+  timeoutMs,
+  maxAttempts
 }: {
   prompt: string;
   systemInstruction: string;
   settings: GeminiSettings;
   temperature?: number;
+  timeoutMs?: number;
+  maxAttempts?: number;
 }) {
   const baseUrl = normalizeBaseUrl(settings.baseUrl);
   const model = normalizeModel(settings.model);
   const endpoint = new URL(`${baseUrl}/models/${encodeURIComponent(model)}:generateContent`);
   endpoint.searchParams.set("key", settings.apiKey.trim());
+  const attempts = Math.max(1, maxAttempts || MAX_RETRY_ATTEMPTS);
 
   let status = 500;
   let payload: GeminiResponse = {};
 
-  for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt += 1) {
-    const response = await postJson<GeminiResponse>(endpoint.toString(), {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const response = await postJson<GeminiResponse>(
+      endpoint.toString(),
+      {
       systemInstruction: {
         parts: [
           {
@@ -168,7 +180,9 @@ export async function runGeminiTextPrompt({
         responseMimeType: "application/json",
         ...(typeof temperature === "number" ? { temperature } : {})
       }
-    });
+      },
+      timeoutMs
+    );
 
     status = response.status;
     payload = response.payload;
@@ -177,7 +191,7 @@ export async function runGeminiTextPrompt({
       break;
     }
 
-    if (!RETRYABLE_STATUS_CODES.has(status) || attempt === MAX_RETRY_ATTEMPTS) {
+    if (!RETRYABLE_STATUS_CODES.has(status) || attempt === attempts) {
       throw new Error(payload.error?.message || `gemini_error_${status}`);
     }
 

@@ -93,7 +93,9 @@ async function runBrandRanking(events: WorkspaceEvent[], brandProfile: BrandProf
     prompt: buildRankingPrompt(events, brandProfile),
     systemInstruction: getSystemInstruction(),
     settings,
-    temperature: 0.3
+    temperature: 0.3,
+    timeoutMs: 8000,
+    maxAttempts: 1
   });
 
   const parsed = JSON.parse(cleanJsonBlock(content)) as { items?: RankedBrandView[] };

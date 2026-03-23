@@ -195,6 +195,28 @@ export function BrandTrendWorkspace() {
       return params;
     };
 
+    const buildMergedParams = (deferAi: boolean) => {
+      const params = new URLSearchParams();
+      if (baseQuery.q) params.set("q", baseQuery.q);
+      if (baseQuery.time) params.set("time", baseQuery.time);
+      if (baseQuery.industry) params.set("industry", baseQuery.industry);
+      if (baseQuery.risk) params.set("risk", baseQuery.risk);
+      if (baseQuery.sort) params.set("sort", baseQuery.sort);
+      if (baseQuery.metric) params.set("metric", baseQuery.metric);
+      params.set("platforms", requestedPlatforms.join(","));
+      if (baseQuery.watchlists?.length) params.set("watchlists", baseQuery.watchlists.join(","));
+      if (baseQuery.brandProfile) {
+        if (baseQuery.brandProfile.name) params.set("brandName", baseQuery.brandProfile.name);
+        if (baseQuery.brandProfile.product) params.set("brandProduct", baseQuery.brandProfile.product);
+        if (baseQuery.brandProfile.brief) params.set("brandBrief", baseQuery.brandProfile.brief);
+        if (baseQuery.brandProfile.capabilities) params.set("brandCapabilities", baseQuery.brandProfile.capabilities);
+        if (baseQuery.brandProfile.objective) params.set("brandObjective", baseQuery.brandProfile.objective);
+        if (baseQuery.brandProfile.guardrails) params.set("brandGuardrails", baseQuery.brandProfile.guardrails);
+      }
+      if (deferAi) params.set("deferAi", "1");
+      return params;
+    };
+
     const partialRequests = requestedPlatforms.map(async (platform) => {
       try {
         const payload = await fetchJson<WorkspacePayload>(
@@ -257,7 +279,29 @@ export function BrandTrendWorkspace() {
         }
 
         if (successCount === 0) {
-          throw new Error("工作台数据加载失败");
+          try {
+            const rescuePayload = await fetchJson<WorkspacePayload>(
+              `/api/workspace?${buildMergedParams(true).toString()}`,
+              controller.signal
+            );
+
+            if (controller.signal.aborted || requestId !== workspaceRequestRef.current) {
+              return;
+            }
+
+            successCount = 1;
+            mergedEvents = mergeWorkspaceEvents(mergedEvents, rescuePayload.events);
+            if (rescuePayload.fetchedAt > latestFetchedAt) {
+              latestFetchedAt = rescuePayload.fetchedAt;
+            }
+
+            setWorkspace(rescuePayload);
+            setSelectedEventKey((current) =>
+              current || (rescuePayload.events[0] ? getEventSelectionKey(rescuePayload.events[0]) : null)
+            );
+          } catch {
+            throw new Error("工作台数据加载失败");
+          }
         }
 
         setLoadingProgress({
@@ -272,38 +316,22 @@ export function BrandTrendWorkspace() {
           return;
         }
 
-        const finalPayload = await fetchJson<WorkspacePayload>(
-          `/api/workspace?${(() => {
-            const params = new URLSearchParams();
-            if (baseQuery.q) params.set("q", baseQuery.q);
-            if (baseQuery.time) params.set("time", baseQuery.time);
-            if (baseQuery.industry) params.set("industry", baseQuery.industry);
-            if (baseQuery.risk) params.set("risk", baseQuery.risk);
-            if (baseQuery.sort) params.set("sort", baseQuery.sort);
-            if (baseQuery.metric) params.set("metric", baseQuery.metric);
-            params.set("platforms", requestedPlatforms.join(","));
-            if (baseQuery.watchlists?.length) params.set("watchlists", baseQuery.watchlists.join(","));
-            if (baseQuery.brandProfile) {
-              if (baseQuery.brandProfile.name) params.set("brandName", baseQuery.brandProfile.name);
-              if (baseQuery.brandProfile.product) params.set("brandProduct", baseQuery.brandProfile.product);
-              if (baseQuery.brandProfile.brief) params.set("brandBrief", baseQuery.brandProfile.brief);
-              if (baseQuery.brandProfile.capabilities) params.set("brandCapabilities", baseQuery.brandProfile.capabilities);
-              if (baseQuery.brandProfile.objective) params.set("brandObjective", baseQuery.brandProfile.objective);
-              if (baseQuery.brandProfile.guardrails) params.set("brandGuardrails", baseQuery.brandProfile.guardrails);
-            }
-            return params.toString();
-          })()}`,
-          controller.signal
-        );
+        try {
+          const finalPayload = await fetchJson<WorkspacePayload>(
+            `/api/workspace?${buildMergedParams(false).toString()}`,
+            controller.signal
+          );
 
-        if (controller.signal.aborted || requestId !== workspaceRequestRef.current) {
-          return;
-        }
+          if (controller.signal.aborted || requestId !== workspaceRequestRef.current) {
+            return;
+          }
 
-        setWorkspace(finalPayload);
-        setSelectedEventKey((current) =>
-          current || (finalPayload.events[0] ? getEventSelectionKey(finalPayload.events[0]) : null)
-        );
+          setWorkspace(finalPayload);
+          setSelectedEventKey((current) =>
+            current || (finalPayload.events[0] ? getEventSelectionKey(finalPayload.events[0]) : null)
+          );
+        } catch {}
+
         setLoadingProgress(null);
         setIsLoading(false);
       })
@@ -820,7 +848,7 @@ export function BrandTrendWorkspace() {
             <div className="loadingDot" />
             <p>{loadingProgress?.stage || "正在拉取今日热点和品牌相关事件..."}</p>
           </section>
-        ) : error ? (
+        ) : error && !workspace ? (
           <section className="emptyState">
             <strong>工作台数据加载失败</strong>
             <p>{error}</p>
