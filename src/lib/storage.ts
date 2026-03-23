@@ -297,6 +297,88 @@ async function ensureSupabaseSeedData() {
   await seedPromise;
 }
 
+async function ensureSupabaseWatchlistsSeedData() {
+  if (!supabaseConfig) {
+    throw new Error("supabase_not_configured");
+  }
+
+  const watchlistProbe = await supabaseRequest<SupabaseWatchlistRow[]>({
+    table: supabaseConfig.watchlistsTable,
+    query: {
+      select: "id",
+      limit: "1"
+    }
+  });
+
+  if (watchlistProbe.length === 0) {
+    await supabaseRequest<SupabaseWatchlistRow[]>({
+      table: supabaseConfig.watchlistsTable,
+      method: "POST",
+      prefer: "return=representation",
+      body: seedState.watchlistTerms.map(toWatchlistRow)
+    });
+  }
+}
+
+async function ensureSupabaseOpportunitiesSeedData() {
+  if (!supabaseConfig) {
+    throw new Error("supabase_not_configured");
+  }
+
+  const opportunitiesProbe = await supabaseRequest<SupabaseOpportunityRow[]>({
+    table: supabaseConfig.opportunitiesTable,
+    query: {
+      select: "id",
+      limit: "1"
+    }
+  });
+
+  if (opportunitiesProbe.length === 0) {
+    await supabaseRequest<SupabaseOpportunityRow[]>({
+      table: supabaseConfig.opportunitiesTable,
+      method: "POST",
+      prefer: "return=representation",
+      body: seedState.savedOpportunities.map(toOpportunityRow)
+    });
+  }
+}
+
+async function readWatchlistTermsFromSupabase(): Promise<StoredWatchlistTerm[]> {
+  if (!supabaseConfig) {
+    throw new Error("supabase_not_configured");
+  }
+
+  await ensureSupabaseWatchlistsSeedData();
+
+  const watchlists = await supabaseRequest<SupabaseWatchlistRow[]>({
+    table: supabaseConfig.watchlistsTable,
+    query: {
+      select: "*",
+      order: "created_at.desc"
+    }
+  });
+
+  return watchlists.map(mapWatchlistRow);
+}
+
+async function readSavedOpportunitiesFromSupabase(): Promise<StoredOpportunity[]> {
+  if (!supabaseConfig) {
+    throw new Error("supabase_not_configured");
+  }
+
+  await ensureSupabaseOpportunitiesSeedData();
+
+  const opportunities = await supabaseRequest<SupabaseOpportunityRow[]>({
+    table: supabaseConfig.opportunitiesTable,
+    query: {
+      select: "*",
+      order: "created_at.desc"
+    }
+  });
+
+  return opportunities.map(mapOpportunityRow);
+}
+
 async function readStateFromSupabase(): Promise<AppState> {
   if (!supabaseConfig) {
     throw new Error("supabase_not_configured");
@@ -304,27 +386,16 @@ async function readStateFromSupabase(): Promise<AppState> {
 
   await ensureSupabaseSeedData();
 
-  const [watchlists, opportunities] = await Promise.all([
-    supabaseRequest<SupabaseWatchlistRow[]>({
-      table: supabaseConfig.watchlistsTable,
-      query: {
-        select: "*",
-        order: "created_at.desc"
-      }
-    }),
-    supabaseRequest<SupabaseOpportunityRow[]>({
-      table: supabaseConfig.opportunitiesTable,
-      query: {
-        select: "*",
-        order: "created_at.desc"
-      }
-    })
+  const [watchlistTerms, savedOpportunities, fileState] = await Promise.all([
+    readWatchlistTermsFromSupabase(),
+    readSavedOpportunitiesFromSupabase(),
+    readStateFromFile()
   ]);
 
   return {
-    watchlistTerms: watchlists.map(mapWatchlistRow),
-    savedOpportunities: opportunities.map(mapOpportunityRow),
-    savedBriefings: (await readStateFromFile()).savedBriefings
+    watchlistTerms,
+    savedOpportunities,
+    savedBriefings: fileState.savedBriefings
   };
 }
 
@@ -561,6 +632,36 @@ export async function getState() {
   }
 
   return readStateFromFile();
+}
+
+export async function getWatchlistTerms() {
+  if (!shouldUseSupabaseStorage()) {
+    return (await readStateFromFile()).watchlistTerms;
+  }
+
+  try {
+    return await readWatchlistTermsFromSupabase();
+  } catch (error) {
+    console.warn("[storage] watchlists read failed, falling back to file storage:", error);
+    return (await readStateFromFile()).watchlistTerms;
+  }
+}
+
+export async function getSavedOpportunities() {
+  if (!shouldUseSupabaseStorage()) {
+    return (await readStateFromFile()).savedOpportunities;
+  }
+
+  try {
+    return await readSavedOpportunitiesFromSupabase();
+  } catch (error) {
+    console.warn("[storage] opportunities read failed, falling back to file storage:", error);
+    return (await readStateFromFile()).savedOpportunities;
+  }
+}
+
+export async function getSavedBriefings() {
+  return (await readStateFromFile()).savedBriefings;
 }
 
 export async function addWatchlistTerm(input: {

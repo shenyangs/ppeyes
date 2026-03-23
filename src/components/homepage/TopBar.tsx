@@ -91,7 +91,7 @@ export function TopBar({
           {isRefreshing ? "刷新中..." : "刷新热度"}
         </button>
         <button className="primaryButton" type="button" onClick={onGenerateBriefing}>
-          生成今日 AI 简报
+          深拆当前热点
         </button>
         </>
       }

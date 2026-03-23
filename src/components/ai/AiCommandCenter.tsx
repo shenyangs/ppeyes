@@ -21,11 +21,14 @@ type AiCommandCenterProps = {
 };
 
 const quickPrompts = [
-  "给我一份今日晨报",
   "拆一下这条热点的传播策略",
   "把这条热点变成小红书脚本",
   "列一下今天最该盯的风险"
 ];
+
+function needsSelectedEvent(prompt: string) {
+  return Boolean(prompt.trim());
+}
 
 export function AiCommandCenter({
   workspace,
@@ -179,12 +182,18 @@ export function AiCommandCenter({
       });
 
       if (!response.ok) {
+        const failure = (await response.json().catch(() => ({}))) as { error?: string };
+        if (failure.error === "ai_not_configured") {
+          throw new Error("当前没有配置可用的 live AI，系统不会再生成假版本。");
+        }
+        if (failure.error === "ai_live_failed") {
+          throw new Error("这次 live AI 没有成功返回，所以没生成二次版本。");
+        }
         throw new Error("生成二次版本失败");
       }
 
       const payload = (await response.json()) as {
         result?: CommandAssetResult;
-        warning?: string;
       };
 
       if (!payload.result) {
@@ -199,11 +208,7 @@ export function AiCommandCenter({
         }
       }));
 
-      if (payload.warning === "live_asset_failed") {
-        setWarning("部分二次版本使用的是系统兜底结果，MiniMax 实时返回失败。");
-      } else {
-        setActionMessage("已生成可交付版本");
-      }
+      setActionMessage("已生成可交付版本");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "生成二次版本失败");
     } finally {
@@ -215,6 +220,11 @@ export function AiCommandCenter({
     const nextPrompt = rawPrompt.trim();
 
     if (!nextPrompt || !workspace) {
+      return;
+    }
+
+    if (needsSelectedEvent(nextPrompt) && !selectedEvent) {
+      setError("这类命令必须先选中一条具体热点，不然 AI 只能空讲。");
       return;
     }
 
@@ -238,12 +248,24 @@ export function AiCommandCenter({
       });
 
       if (!response.ok) {
+        const failure = (await response.json().catch(() => ({}))) as { error?: string };
+        if (failure.error === "missing_selected_event") {
+          throw new Error("先选中一条热点，再让 AI 拆策略、写脚本或做风险判断。");
+        }
+        if (failure.error === "unsupported_command") {
+          throw new Error("当前真 AI 只支持三类命令：热点策略、小红书脚本、风险判断。");
+        }
+        if (failure.error === "ai_not_configured") {
+          throw new Error("当前没有配置可用的 live AI，系统不会再给你假结果。");
+        }
+        if (failure.error === "ai_live_failed") {
+          throw new Error("这次 live AI 调用失败，没有返回结果。");
+        }
         throw new Error(response.status === 400 ? "请输入明确指令。" : "AI 指挥台执行失败");
       }
 
       const payload = (await response.json()) as {
         result?: CopilotCommandResult;
-        warning?: string;
       };
 
       if (!payload.result) {
@@ -262,10 +284,6 @@ export function AiCommandCenter({
       ].slice(0, 6));
 
       setPrompt("");
-
-      if (payload.warning === "live_command_failed") {
-        setWarning("这次显示的是系统兜底结果，MiniMax 实时返回失败。");
-      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "AI 指挥台执行失败");
     } finally {
@@ -293,7 +311,7 @@ export function AiCommandCenter({
       <div className="panelHeader">
         <div>
           <p className="panelKicker">AI 指挥台</p>
-          <h2>一句话下命令</h2>
+          <h2>围绕当前热点做真 AI 深拆</h2>
         </div>
         <div className="aiCommandState">
           {selectedEvent ? <span>当前热点：{selectedEvent.title}</span> : <span>当前未选热点</span>}
@@ -306,7 +324,7 @@ export function AiCommandCenter({
           <span>你可以直接说</span>
           <textarea
             id="copilot-command"
-            placeholder="比如：给我一份今日晨报 / 把这条热点变成小红书脚本 / 拆一下这条热点的传播策略"
+            placeholder="先在左侧选中一条热点，再说：拆策略 / 写小红书脚本 / 做风险判断"
             rows={3}
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
@@ -331,8 +349,8 @@ export function AiCommandCenter({
 
       {history.length === 0 ? (
         <div className="emptyState emptyStateSoft">
-          <strong>这里会变成你的 AI 助手操作记录</strong>
-          <p>先发一条命令，系统会把结果整理成可直接使用的运营卡片。</p>
+          <strong>这里只显示真实模型返回的结果</strong>
+          <p>先选中一条具体热点，再让 AI 做策略深拆、脚本生成或风险判断。</p>
         </div>
       ) : (
         <div className="aiCommandHistory">
@@ -349,7 +367,7 @@ export function AiCommandCenter({
                   <p>{item.result.summary}</p>
                 </div>
                 <span className={item.result.mode === "live" ? "aiModeBadge aiModeBadgeLive" : "aiModeBadge"}>
-                  {item.result.mode === "live" ? "MiniMax 实时生成" : "系统兜底结果"}
+                  {item.result.mode === "live" ? "MiniMax 实时生成" : "非 live 结果"}
                 </span>
               </div>
 
@@ -424,7 +442,7 @@ export function AiCommandCenter({
                       <article className="aiAssetCard" key={`${item.id}-${asset.kind}`}>
                         <div className="featureCardTop">
                           <strong>{asset.title}</strong>
-                          <span>{asset.mode === "live" ? "MiniMax 生成" : "系统兜底"}</span>
+                          <span>{asset.mode === "live" ? "MiniMax 生成" : "非 live 结果"}</span>
                         </div>
                         <p>{asset.summary}</p>
                         <div className="aiAssetContent">

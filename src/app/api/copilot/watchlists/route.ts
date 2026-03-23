@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { buildWatchlistsFallback, buildWatchlistsNativeAiDigest } from "@/lib/native-ai";
+import { buildWatchlistsNativeAiDigest } from "@/lib/native-ai";
 import type { WatchlistsPayload } from "@/lib/page-data";
+import { hasLiveAiConfigured } from "@/lib/ai-status";
 
 export async function POST(request: Request) {
   try {
@@ -12,13 +13,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "missing_watchlists" }, { status: 400 });
     }
 
+    if (!hasLiveAiConfigured()) {
+      return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
+    }
+
     try {
       const digest = await buildWatchlistsNativeAiDigest(body.watchlists);
       return NextResponse.json({ digest });
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown_error";
       console.error("[api/copilot/watchlists] live digest failed:", reason);
-      return NextResponse.json({ digest: buildWatchlistsFallback(body.watchlists), warning: "live_digest_failed" });
+      return NextResponse.json({ error: "ai_live_failed" }, { status: 502 });
     }
   } catch {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });

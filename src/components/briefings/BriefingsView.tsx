@@ -1,20 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AiNativePanel } from "@/components/ai/AiNativePanel";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppShell } from "@/components/layout/AppShell";
 import { fetchJson } from "@/lib/api";
 import type { BriefingsPayload } from "@/lib/page-data";
-import type { BriefingsNativeAiDigest } from "@/lib/native-ai";
 
 export function BriefingsView() {
   const [data, setData] = useState<BriefingsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [digest, setDigest] = useState<BriefingsNativeAiDigest | null>(null);
-  const [digestError, setDigestError] = useState<string | null>(null);
-  const [digestWarning, setDigestWarning] = useState<string | null>(null);
-  const [isDigestLoading, setIsDigestLoading] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -31,67 +25,6 @@ export function BriefingsView() {
 
     return () => controller.abort();
   }, []);
-
-  useEffect(() => {
-    if (!data) {
-      setDigest(null);
-      setDigestError(null);
-      setDigestWarning(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    setIsDigestLoading(true);
-    setDigestError(null);
-    setDigestWarning(null);
-
-    fetch("/api/copilot/briefings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        briefings: data
-      }),
-      signal: controller.signal
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error("AI 简报判断失败");
-        }
-
-        const payload = (await response.json()) as {
-          digest?: BriefingsNativeAiDigest;
-          warning?: string;
-        };
-
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        if (!payload.digest) {
-          throw new Error("没有拿到简报 AI 结果");
-        }
-
-        setDigest(payload.digest);
-
-        if (payload.warning === "live_digest_failed") {
-          setDigestWarning("当前显示的是系统兜底建议，MiniMax 实时返回失败。");
-        }
-      })
-      .catch((requestError: Error) => {
-        if (controller.signal.aborted) return;
-        setDigestError(requestError.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsDigestLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [data]);
-
   return (
     <AppShell>
       <AppHeader
@@ -110,28 +43,10 @@ export function BriefingsView() {
       <section className="pageIntro">
         <div>
           <p className="panelKicker">简报中心</p>
-          <h2>把 AI 判断直接变成可发出去的简报骨架</h2>
+          <h2>这里先只保留真实简报资产，不再展示假 AI 总结</h2>
         </div>
         <p>简报不是原始数据堆叠，而是“为什么值得看、值不值得做、风险在哪里”的结构化输出。</p>
       </section>
-
-      <AiNativePanel
-        kicker="AI 简报官"
-        title="简报页原生 AI 判断"
-        digest={digest}
-        isLoading={isDigestLoading}
-        error={digestError}
-        warning={digestWarning}
-        extra={
-          digest?.deliveryPlan?.length ? (
-            <div className="bulletPanel aiBulletPanel">
-              {digest.deliveryPlan.map((item) => (
-                <p key={item}>{item}</p>
-              ))}
-            </div>
-          ) : null
-        }
-      />
 
       {!data && !error ? (
         <section className="loadingPanel">

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { BrandProfile } from "@/lib/brand";
-import { buildFallbackAnalysis, runGeminiAnalysis } from "@/lib/analysis";
+import { runGeminiAnalysis } from "@/lib/analysis";
 import { getEnvAiSettings } from "@/lib/gemini";
 import type { EventItem } from "@/lib/homepage-data";
 
@@ -19,10 +19,7 @@ export async function POST(request: Request) {
     const settings = envSettings;
 
     if (!settings) {
-      return NextResponse.json({
-        analysis: buildFallbackAnalysis(body.event, body.brandProfile),
-        warning: "missing_ai_credentials"
-      });
+      return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
     }
 
     try {
@@ -31,10 +28,7 @@ export async function POST(request: Request) {
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown_error";
       console.error("[api/analyze] AI live analysis failed:", reason);
-      return NextResponse.json({
-        analysis: buildFallbackAnalysis(body.event, body.brandProfile),
-        warning: "live_analysis_failed"
-      });
+      return NextResponse.json({ error: "ai_live_failed" }, { status: 502 });
     }
   } catch {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });

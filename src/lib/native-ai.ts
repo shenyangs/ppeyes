@@ -1,4 +1,14 @@
 import type { BrandProfile } from "@/lib/brand";
+import { buildFocusedCommandPrompt, detectTrueAiIntent } from "@/lib/ai-core";
+import {
+  requireLiveAssetKind,
+  requireLiveCommandKind,
+  requireLiveSectionArray,
+  requireLiveStringArray,
+  requireLiveTaskArray,
+  requireLiveText,
+  requireLiveWatchlistSuggestions
+} from "@/lib/ai-live-contract";
 import type {
   BriefingsPayload,
   OpportunitiesPayload,
@@ -402,38 +412,6 @@ export function buildBriefingsFallback(payload: BriefingsPayload): BriefingsNati
   };
 }
 
-function detectCommandKind(prompt: string): CopilotCommandKind {
-  const normalized = prompt.toLowerCase();
-
-  if (
-    prompt.includes("晨报") ||
-    prompt.includes("晚报") ||
-    prompt.includes("简报") ||
-    prompt.includes("日报")
-  ) {
-    return "daily_brief";
-  }
-
-  if (normalized.includes("小红书") || normalized.includes("脚本") || normalized.includes("口播")) {
-    return "xhs_script";
-  }
-
-  if (normalized.includes("风险") || normalized.includes("预警") || normalized.includes("盯盘")) {
-    return "risk_watch";
-  }
-
-  if (
-    normalized.includes("策略") ||
-    normalized.includes("怎么做") ||
-    normalized.includes("选题") ||
-    normalized.includes("借势")
-  ) {
-    return "event_strategy";
-  }
-
-  return "general";
-}
-
 export function buildCopilotCommandFallback({
   prompt,
   workspace,
@@ -445,43 +423,10 @@ export function buildCopilotCommandFallback({
   selectedEvent: WorkspacePayload["events"][number] | null;
   brandProfile: BrandProfile | null;
 }): CopilotCommandResult {
-  const kind = detectCommandKind(prompt);
+  const kind = detectTrueAiIntent(prompt) || "general";
   const topEvents = workspace.events.slice(0, 3);
   const focusEvent = selectedEvent || topEvents[0] || null;
   const brandName = brandProfile?.product || brandProfile?.name || "当前业务";
-
-  if (kind === "daily_brief") {
-    return {
-      mode: "fallback",
-      kind,
-      title: "今日 AI 晨报",
-      summary: `系统先帮你压缩成一版晨会可直接同步的判断，重点围绕今天最值得看的事件、风险和动作。`,
-      sections: [
-        {
-          title: "今日最值得先看",
-          content:
-            topEvents.length > 0
-              ? topEvents
-                  .map((event, index) => `${index + 1}. ${event.title}：${event.brandView?.reason || event.reason}`)
-                  .join("\n")
-              : "当前没有可用事件，建议先刷新工作台。"
-        },
-        {
-          title: "今天建议先做什么",
-          content: focusEvent
-            ? `先围绕「${focusEvent.title}」决定要不要立刻动作。如果要做，优先把它落到 ${brandName} 的真实产品能力。`
-            : "先补齐今日事件，再决定是否进入内容执行。"
-        },
-        {
-          title: "风险提醒",
-          content:
-            workspace.events.filter((event) => event.risk === "高").slice(0, 2).map((event) => `- ${event.title}`).join("\n") ||
-            "当前没有特别突出的高风险事件，但仍建议先看风险备注。"
-        }
-      ],
-      suggestions: ["继续追问：把晨报改成老板 30 秒版本", "继续追问：只保留今天能发的内容", "继续追问：给我客户可看的版本"]
-    };
-  }
 
   if (kind === "xhs_script") {
     return {
@@ -807,62 +752,29 @@ async function runSurfacePrompt<T>({
 
 function buildCommandPrompt({
   prompt,
-  workspace,
   selectedEvent,
   brandProfile
 }: {
   prompt: string;
-  workspace: WorkspacePayload;
   selectedEvent: WorkspacePayload["events"][number] | null;
   brandProfile: BrandProfile | null;
 }) {
-  const topEvents = workspace.events.slice(0, 8).map((event) =>
-    [
-      `id:${event.id}`,
-      `标题:${event.title}`,
-      `摘要:${event.summary}`,
-      `风险:${event.risk}`,
-      `动作:${event.action}`,
-      event.brandView ? `品牌判断:${event.brandView.verdict}/${event.brandView.score}/${event.brandView.reason}` : "品牌判断:未启用"
-    ].join(" | ")
-  );
+  if (!selectedEvent) {
+    throw new Error("missing_selected_event");
+  }
 
-  return [
-    "你是 PPeyes 首页的对话式 AI 指挥台。",
-    "用户会直接给你一句命令，你要立刻产出运营团队能使用的结果，而不是空泛解释。",
-    "请只输出 JSON，字段必须严格为：kind, title, summary, sections, suggestions。",
-    "kind 只能是 daily_brief, event_strategy, xhs_script, risk_watch, general 之一。",
-    "sections 为 2-4 条数组，每条格式为 {\"title\":\"\",\"content\":\"\"}。",
-    "suggestions 为 2-4 条中文短句数组，用来引导下一轮追问。",
-    "",
-    `用户命令：${prompt}`,
-    "",
-    buildBrandContext(brandProfile),
-    "",
-    selectedEvent
-      ? [
-          "当前选中热点：",
-          `标题：${selectedEvent.title}`,
-          `摘要：${selectedEvent.summary}`,
-          `风险：${selectedEvent.risk}`,
-          `动作：${selectedEvent.action}`,
-          selectedEvent.brandView
-            ? `品牌判断：${selectedEvent.brandView.verdict} / ${selectedEvent.brandView.score} / ${selectedEvent.brandView.reason}`
-            : "品牌判断：未启用"
-        ].join("\n")
-      : "当前未选中热点。",
-    "",
-    "工作台前排事件：",
-    topEvents.join("\n"),
-    "",
-    "要求：",
-    "1. 如果用户要晨报，就写成晨会能直接同步的版本。",
-    "2. 如果用户要脚本，就给出接近成稿的内容，不要只讲方法。",
-    "3. 如果用户要策略，就给出清楚的取舍和动作。",
-    "4. 如果用户问风险，就以内部判断口吻回答。",
-    "5. 必须简洁、具体、像运营总控在说话。",
-    "6. 只输出 JSON。"
-  ].join("\n");
+  const intent = detectTrueAiIntent(prompt);
+
+  if (!intent) {
+    throw new Error("unsupported_command");
+  }
+
+  return buildFocusedCommandPrompt({
+    prompt,
+    intent,
+    event: selectedEvent,
+    brandProfile
+  });
 }
 
 function buildAssetPrompt({
@@ -906,14 +818,13 @@ function buildAssetPrompt({
 }
 
 export async function buildWorkspaceNativeAiDigest(payload: WorkspacePayload): Promise<WorkspaceNativeAiDigest> {
-  const fallback = buildWorkspaceFallback(payload);
   const settings = getSettings();
 
   if (!settings) {
-    return fallback;
+    throw new Error("ai_not_configured");
   }
 
-  const parsed = await runSurfacePrompt<Partial<WorkspaceNativeAiDigest>>({
+  const parsed = await runSurfacePrompt<Record<string, unknown>>({
     prompt: buildWorkspacePrompt(payload),
     systemInstruction: buildSystemInstruction("工作台"),
     settings
@@ -921,26 +832,30 @@ export async function buildWorkspaceNativeAiDigest(payload: WorkspacePayload): P
 
   return {
     mode: "live",
-    headline: trimLine(parsed.headline, fallback.headline),
-    summary: trimLine(parsed.summary, fallback.summary),
-    nextMove: trimLine(parsed.nextMove, fallback.nextMove),
-    rationale: trimLine(parsed.rationale, fallback.rationale),
-    priorities: trimTaskArray(parsed.priorities, fallback.priorities),
-    watchouts: trimStringArray(parsed.watchouts, fallback.watchouts),
-    questions: trimStringArray(parsed.questions, fallback.questions),
-    focusEventIds: trimStringArray(parsed.focusEventIds, fallback.focusEventIds, 3)
+    headline: requireLiveText(parsed.headline, "headline"),
+    summary: requireLiveText(parsed.summary, "summary"),
+    nextMove: requireLiveText(parsed.nextMove, "nextMove"),
+    rationale: requireLiveText(parsed.rationale, "rationale"),
+    priorities: requireLiveTaskArray(parsed.priorities, "priorities"),
+    watchouts: requireLiveStringArray(parsed.watchouts, "watchouts"),
+    questions: requireLiveStringArray(parsed.questions, "questions"),
+    focusEventIds: requireLiveStringArray(
+      parsed.focusEventIds,
+      "focusEventIds",
+      payload.events.length > 0 ? 1 : 0,
+      3
+    )
   };
 }
 
 export async function buildWatchlistsNativeAiDigest(payload: WatchlistsPayload): Promise<WatchlistsNativeAiDigest> {
-  const fallback = buildWatchlistsFallback(payload);
   const settings = getSettings();
 
   if (!settings) {
-    return fallback;
+    throw new Error("ai_not_configured");
   }
 
-  const parsed = await runSurfacePrompt<Partial<WatchlistsNativeAiDigest>>({
+  const parsed = await runSurfacePrompt<Record<string, unknown>>({
     prompt: buildWatchlistsPrompt(payload),
     systemInstruction: buildSystemInstruction("监测词页"),
     settings
@@ -948,26 +863,25 @@ export async function buildWatchlistsNativeAiDigest(payload: WatchlistsPayload):
 
   return {
     mode: "live",
-    headline: trimLine(parsed.headline, fallback.headline),
-    summary: trimLine(parsed.summary, fallback.summary),
-    nextMove: trimLine(parsed.nextMove, fallback.nextMove),
-    rationale: trimLine(parsed.rationale, fallback.rationale),
-    priorities: trimTaskArray(parsed.priorities, fallback.priorities),
-    watchouts: trimStringArray(parsed.watchouts, fallback.watchouts),
-    questions: trimStringArray(parsed.questions, fallback.questions),
-    termSuggestions: trimWatchlistSuggestions(parsed.termSuggestions, fallback.termSuggestions)
+    headline: requireLiveText(parsed.headline, "headline"),
+    summary: requireLiveText(parsed.summary, "summary"),
+    nextMove: requireLiveText(parsed.nextMove, "nextMove"),
+    rationale: requireLiveText(parsed.rationale, "rationale"),
+    priorities: requireLiveTaskArray(parsed.priorities, "priorities"),
+    watchouts: requireLiveStringArray(parsed.watchouts, "watchouts"),
+    questions: requireLiveStringArray(parsed.questions, "questions"),
+    termSuggestions: requireLiveWatchlistSuggestions(parsed.termSuggestions, "termSuggestions")
   };
 }
 
 export async function buildOpportunitiesNativeAiDigest(payload: OpportunitiesPayload): Promise<NativeAiDigest> {
-  const fallback = buildOpportunitiesFallback(payload);
   const settings = getSettings();
 
   if (!settings) {
-    return fallback;
+    throw new Error("ai_not_configured");
   }
 
-  const parsed = await runSurfacePrompt<Partial<NativeAiDigest>>({
+  const parsed = await runSurfacePrompt<Record<string, unknown>>({
     prompt: buildOpportunitiesPrompt(payload),
     systemInstruction: buildSystemInstruction("机会池"),
     settings
@@ -975,25 +889,24 @@ export async function buildOpportunitiesNativeAiDigest(payload: OpportunitiesPay
 
   return {
     mode: "live",
-    headline: trimLine(parsed.headline, fallback.headline),
-    summary: trimLine(parsed.summary, fallback.summary),
-    nextMove: trimLine(parsed.nextMove, fallback.nextMove),
-    rationale: trimLine(parsed.rationale, fallback.rationale),
-    priorities: trimTaskArray(parsed.priorities, fallback.priorities),
-    watchouts: trimStringArray(parsed.watchouts, fallback.watchouts),
-    questions: trimStringArray(parsed.questions, fallback.questions)
+    headline: requireLiveText(parsed.headline, "headline"),
+    summary: requireLiveText(parsed.summary, "summary"),
+    nextMove: requireLiveText(parsed.nextMove, "nextMove"),
+    rationale: requireLiveText(parsed.rationale, "rationale"),
+    priorities: requireLiveTaskArray(parsed.priorities, "priorities"),
+    watchouts: requireLiveStringArray(parsed.watchouts, "watchouts"),
+    questions: requireLiveStringArray(parsed.questions, "questions")
   };
 }
 
 export async function buildBriefingsNativeAiDigest(payload: BriefingsPayload): Promise<BriefingsNativeAiDigest> {
-  const fallback = buildBriefingsFallback(payload);
   const settings = getSettings();
 
   if (!settings) {
-    return fallback;
+    throw new Error("ai_not_configured");
   }
 
-  const parsed = await runSurfacePrompt<Partial<BriefingsNativeAiDigest>>({
+  const parsed = await runSurfacePrompt<Record<string, unknown>>({
     prompt: buildBriefingsPrompt(payload),
     systemInstruction: buildSystemInstruction("简报页"),
     settings
@@ -1001,14 +914,14 @@ export async function buildBriefingsNativeAiDigest(payload: BriefingsPayload): P
 
   return {
     mode: "live",
-    headline: trimLine(parsed.headline, fallback.headline),
-    summary: trimLine(parsed.summary, fallback.summary),
-    nextMove: trimLine(parsed.nextMove, fallback.nextMove),
-    rationale: trimLine(parsed.rationale, fallback.rationale),
-    priorities: trimTaskArray(parsed.priorities, fallback.priorities),
-    watchouts: trimStringArray(parsed.watchouts, fallback.watchouts),
-    questions: trimStringArray(parsed.questions, fallback.questions),
-    deliveryPlan: trimStringArray(parsed.deliveryPlan, fallback.deliveryPlan)
+    headline: requireLiveText(parsed.headline, "headline"),
+    summary: requireLiveText(parsed.summary, "summary"),
+    nextMove: requireLiveText(parsed.nextMove, "nextMove"),
+    rationale: requireLiveText(parsed.rationale, "rationale"),
+    priorities: requireLiveTaskArray(parsed.priorities, "priorities"),
+    watchouts: requireLiveStringArray(parsed.watchouts, "watchouts"),
+    questions: requireLiveStringArray(parsed.questions, "questions"),
+    deliveryPlan: requireLiveStringArray(parsed.deliveryPlan, "deliveryPlan")
   };
 }
 
@@ -1023,22 +936,15 @@ export async function buildCopilotCommandResult({
   selectedEvent: WorkspacePayload["events"][number] | null;
   brandProfile: BrandProfile | null;
 }): Promise<CopilotCommandResult> {
-  const fallback = buildCopilotCommandFallback({
-    prompt,
-    workspace,
-    selectedEvent,
-    brandProfile
-  });
   const settings = getSettings();
 
   if (!settings) {
-    return fallback;
+    throw new Error("ai_not_configured");
   }
 
-  const parsed = await runSurfacePrompt<Partial<CopilotCommandResult>>({
+  const parsed = await runSurfacePrompt<Record<string, unknown>>({
     prompt: buildCommandPrompt({
       prompt,
-      workspace,
       selectedEvent,
       brandProfile
     }),
@@ -1048,18 +954,11 @@ export async function buildCopilotCommandResult({
 
   return {
     mode: "live",
-    kind:
-      parsed.kind === "daily_brief" ||
-      parsed.kind === "event_strategy" ||
-      parsed.kind === "xhs_script" ||
-      parsed.kind === "risk_watch" ||
-      parsed.kind === "general"
-        ? parsed.kind
-        : fallback.kind,
-    title: trimLine(parsed.title, fallback.title),
-    summary: trimLine(parsed.summary, fallback.summary),
-    sections: trimSectionArray(parsed.sections, fallback.sections),
-    suggestions: trimStringArray(parsed.suggestions, fallback.suggestions)
+    kind: requireLiveCommandKind(parsed.kind),
+    title: requireLiveText(parsed.title, "title"),
+    summary: requireLiveText(parsed.summary, "summary"),
+    sections: requireLiveSectionArray(parsed.sections, "sections", 2),
+    suggestions: requireLiveStringArray(parsed.suggestions, "suggestions", 2)
   };
 }
 
@@ -1074,19 +973,13 @@ export async function buildCommandAssetResult({
   selectedEvent: WorkspacePayload["events"][number] | null;
   brandProfile: BrandProfile | null;
 }): Promise<CommandAssetResult> {
-  const fallback = buildCommandAssetFallback({
-    assetKind,
-    command,
-    selectedEvent,
-    brandProfile
-  });
   const settings = getSettings();
 
   if (!settings) {
-    return fallback;
+    throw new Error("ai_not_configured");
   }
 
-  const parsed = await runSurfacePrompt<Partial<CommandAssetResult>>({
+  const parsed = await runSurfacePrompt<Record<string, unknown>>({
     prompt: buildAssetPrompt({
       assetKind,
       command,
@@ -1099,10 +992,10 @@ export async function buildCommandAssetResult({
 
   return {
     mode: "live",
-    kind: detectAssetKind(parsed.kind || "") || fallback.kind,
-    title: trimLine(parsed.title, fallback.title),
-    summary: trimLine(parsed.summary, fallback.summary),
-    content: trimLine(parsed.content, fallback.content),
-    bullets: trimStringArray(parsed.bullets, fallback.bullets)
+    kind: requireLiveAssetKind(parsed.kind),
+    title: requireLiveText(parsed.title, "title"),
+    summary: requireLiveText(parsed.summary, "summary"),
+    content: requireLiveText(parsed.content, "content"),
+    bullets: requireLiveStringArray(parsed.bullets, "bullets", 2)
   };
 }

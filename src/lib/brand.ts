@@ -1,4 +1,4 @@
-import type { EventItem } from "@/lib/homepage-data";
+import type { EventItem } from "./homepage-data.ts";
 
 export type BrandProfile = {
   name: string;

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { buildWatchlistsPayload } from "@/lib/page-data";
-import { addWatchlistTerm, getState } from "@/lib/storage";
+import { addWatchlistTerm, getWatchlistTerms } from "@/lib/storage";
 
 export async function GET() {
-  const state = await getState();
-  return NextResponse.json(buildWatchlistsPayload(state.watchlistTerms));
+  const terms = await getWatchlistTerms();
+  return NextResponse.json(buildWatchlistsPayload(terms));
 }
 
 export async function POST(request: Request) {
@@ -27,8 +27,8 @@ export async function POST(request: Request) {
       alerts: body.alerts
     });
 
-    const state = await getState();
-    return NextResponse.json(buildWatchlistsPayload(state.watchlistTerms));
+    const terms = await getWatchlistTerms();
+    return NextResponse.json(buildWatchlistsPayload(terms));
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown_error";
     const status = message === "keyword_exists" ? 409 : 400;

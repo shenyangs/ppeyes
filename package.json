@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "node --test --experimental-strip-types --experimental-specifier-resolution=node tests/**/*.test.ts",
     "lint": "next lint",
     "docker:build:jspace:x86": "bash ./scripts/build-jspace-x86.sh"
   },

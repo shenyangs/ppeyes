@@ -236,37 +236,50 @@ export async function runGeminiAnalysis(
   });
 
   const parsed = parseModelJson<Partial<Omit<EventAnalysis, "mode">>>(content);
+
+  if (
+    !parsed.planningType?.trim() ||
+    !parsed.campaignName?.trim() ||
+    !parsed.coreInsight?.trim() ||
+    !parsed.strategyLine?.trim() ||
+    !parsed.productLink?.trim() ||
+    !parsed.heroAsset?.trim() ||
+    !parsed.draft?.trim()
+  ) {
+    throw new Error("analysis_incomplete");
+  }
+
   const fallback = buildFallbackAnalysis(event, brandProfile);
 
   return {
-    planningType: parsed.planningType || fallback.planningType,
-    campaignName: parsed.campaignName || fallback.campaignName,
-    targetAudience: parsed.targetAudience || fallback.targetAudience,
-    scenario: parsed.scenario || fallback.scenario,
-    coreInsight: parsed.coreInsight || fallback.coreInsight,
-    strategyLine: parsed.strategyLine || fallback.strategyLine,
-    productLink: parsed.productLink || fallback.productLink,
-    heroAsset: parsed.heroAsset || fallback.heroAsset,
-    conclusion: parsed.conclusion || fallback.conclusion,
-    reasoning: parsed.reasoning || fallback.reasoning,
-    channels: parsed.channels || fallback.channels,
-    angles: parsed.angles || fallback.angles,
-    headlines: parsed.headlines || fallback.headlines,
-    draft: parsed.draft || fallback.draft,
-    executionSteps: parsed.executionSteps || fallback.executionSteps,
-    contentPlan: parsed.contentPlan || fallback.contentPlan,
-    assetList: parsed.assetList || fallback.assetList,
-    launchTimeline: parsed.launchTimeline || fallback.launchTimeline,
-    successMetrics: parsed.successMetrics || fallback.successMetrics,
-    callToAction: parsed.callToAction || fallback.callToAction,
+    planningType: parsed.planningType,
+    campaignName: parsed.campaignName,
+    targetAudience: parsed.targetAudience?.trim() || fallback.targetAudience,
+    scenario: parsed.scenario?.trim() || fallback.scenario,
+    coreInsight: parsed.coreInsight,
+    strategyLine: parsed.strategyLine,
+    productLink: parsed.productLink,
+    heroAsset: parsed.heroAsset,
+    conclusion: parsed.conclusion?.trim() || fallback.conclusion,
+    reasoning: parsed.reasoning?.trim() || fallback.reasoning,
+    channels: parsed.channels?.length ? parsed.channels : fallback.channels,
+    angles: parsed.angles?.length ? parsed.angles : fallback.angles,
+    headlines: parsed.headlines?.length ? parsed.headlines : fallback.headlines,
+    draft: parsed.draft,
+    executionSteps: parsed.executionSteps?.length ? parsed.executionSteps : fallback.executionSteps,
+    contentPlan: parsed.contentPlan?.length ? parsed.contentPlan : fallback.contentPlan,
+    assetList: parsed.assetList?.length ? parsed.assetList : fallback.assetList,
+    launchTimeline: parsed.launchTimeline?.length ? parsed.launchTimeline : fallback.launchTimeline,
+    successMetrics: parsed.successMetrics?.length ? parsed.successMetrics : fallback.successMetrics,
+    callToAction: parsed.callToAction?.trim() || fallback.callToAction,
     fitScore: typeof parsed.fitScore === "number" ? parsed.fitScore : fallback.fitScore,
     creativeScore: typeof parsed.creativeScore === "number" ? parsed.creativeScore : fallback.creativeScore,
     spreadScore: typeof parsed.spreadScore === "number" ? parsed.spreadScore : fallback.spreadScore,
     riskControlScore:
       typeof parsed.riskControlScore === "number" ? parsed.riskControlScore : fallback.riskControlScore,
-    planningComment: parsed.planningComment || fallback.planningComment,
-    riskNote: parsed.riskNote || fallback.riskNote,
-    nextAction: parsed.nextAction || fallback.nextAction,
+    planningComment: parsed.planningComment?.trim() || fallback.planningComment,
+    riskNote: parsed.riskNote?.trim() || fallback.riskNote,
+    nextAction: parsed.nextAction?.trim() || fallback.nextAction,
     mode: "live"
   };
 }

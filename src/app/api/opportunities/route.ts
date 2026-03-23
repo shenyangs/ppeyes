@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { buildOpportunitiesPayload } from "@/lib/page-data";
-import { getState, saveOpportunity } from "@/lib/storage";
+import { getSavedOpportunities, saveOpportunity } from "@/lib/storage";
 
 export async function GET() {
-  const state = await getState();
-  return NextResponse.json(buildOpportunitiesPayload(state.savedOpportunities));
+  const saved = await getSavedOpportunities();
+  return NextResponse.json(buildOpportunitiesPayload(saved));
 }
 
 export async function POST(request: Request) {

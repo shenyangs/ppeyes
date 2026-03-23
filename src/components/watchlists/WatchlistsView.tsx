@@ -2,12 +2,10 @@
 
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
-import { AiNativePanel } from "@/components/ai/AiNativePanel";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppShell } from "@/components/layout/AppShell";
 import { fetchJson } from "@/lib/api";
 import type { WatchlistsPayload } from "@/lib/page-data";
-import type { WatchlistsNativeAiDigest } from "@/lib/native-ai";
 import type { StoredWatchlistTerm } from "@/lib/storage";
 
 export function WatchlistsView() {
@@ -15,10 +13,6 @@ export function WatchlistsView() {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [digest, setDigest] = useState<WatchlistsNativeAiDigest | null>(null);
-  const [digestError, setDigestError] = useState<string | null>(null);
-  const [digestWarning, setDigestWarning] = useState<string | null>(null);
-  const [isDigestLoading, setIsDigestLoading] = useState(false);
   const [form, setForm] = useState<{
     type: StoredWatchlistTerm["type"];
     keyword: string;
@@ -46,67 +40,6 @@ export function WatchlistsView() {
 
     return () => controller.abort();
   }, []);
-
-  useEffect(() => {
-    if (!data) {
-      setDigest(null);
-      setDigestError(null);
-      setDigestWarning(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    setIsDigestLoading(true);
-    setDigestError(null);
-    setDigestWarning(null);
-
-    fetch("/api/copilot/watchlists", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        watchlists: data
-      }),
-      signal: controller.signal
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error("AI 监测词体检失败");
-        }
-
-        const payload = (await response.json()) as {
-          digest?: WatchlistsNativeAiDigest;
-          warning?: string;
-        };
-
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        if (!payload.digest) {
-          throw new Error("没有拿到 AI 建议");
-        }
-
-        setDigest(payload.digest);
-
-        if (payload.warning === "live_digest_failed") {
-          setDigestWarning("当前显示的是系统兜底建议，MiniMax 实时返回失败。");
-        }
-      })
-      .catch((requestError: Error) => {
-        if (controller.signal.aborted) return;
-        setDigestError(requestError.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsDigestLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [data]);
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -142,34 +75,6 @@ export function WatchlistsView() {
     }
   }
 
-  async function handleApplySuggestion(suggestion: WatchlistsNativeAiDigest["termSuggestions"][number]) {
-    try {
-      setError(null);
-      const response = await fetch("/api/watchlists", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          type: suggestion.type,
-          keyword: suggestion.keyword,
-          priority: suggestion.priority,
-          alerts: true
-        })
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json()) as { error?: string };
-        throw new Error(payload.error === "keyword_exists" ? "这个建议词已经存在" : "添加建议词失败");
-      }
-
-      const payload = (await response.json()) as WatchlistsPayload;
-      setData(payload);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "添加建议词失败");
-    }
-  }
-
   return (
     <AppShell>
       <AppHeader
@@ -188,41 +93,12 @@ export function WatchlistsView() {
       <section className="pageIntro">
         <div>
           <p className="panelKicker">监测词设置</p>
-          <h2>让 AI 帮你把词包变成可用的信号网</h2>
+          <h2>先把监测词做好，不再展示假 AI 体检</h2>
         </div>
         <p>
           把复杂规则压成 4 类词包，让团队 5 分钟内完成基础监测配置。系统会把命中结果直接回流到工作台和简报。
         </p>
       </section>
-
-      <AiNativePanel
-        kicker="AI 监测员"
-        title="这一页不该只是配置页"
-        digest={digest}
-        isLoading={isDigestLoading}
-        error={digestError}
-        warning={digestWarning}
-        extra={
-          digest?.termSuggestions?.length ? (
-            <div className="templateList aiCompactList">
-              {digest.termSuggestions.map((item) => (
-                <article className="listCard aiSuggestionCard" key={`${item.type}-${item.keyword}`}>
-                  <div className="featureCardTop">
-                    <strong>{item.keyword}</strong>
-                    <span>
-                      {item.type} · {item.priority}
-                    </span>
-                  </div>
-                  <p>{item.reason}</p>
-                  <button className="ghostButton stretchButton" type="button" onClick={() => handleApplySuggestion(item)}>
-                    加进监测词
-                  </button>
-                </article>
-              ))}
-            </div>
-          ) : null
-        }
-      />
 
       {!data && !error ? (
         <section className="loadingPanel">

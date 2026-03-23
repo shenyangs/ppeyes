@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { buildBriefingsPayload } from "@/lib/page-data";
-import { getState, saveBriefing } from "@/lib/storage";
+import { getSavedBriefings, saveBriefing } from "@/lib/storage";
 
 export async function GET() {
-  const state = await getState();
-  return NextResponse.json(buildBriefingsPayload(state.savedBriefings));
+  const saved = await getSavedBriefings();
+  return NextResponse.json(buildBriefingsPayload(saved));
 }
 
 export async function POST(request: Request) {
@@ -27,8 +27,8 @@ export async function POST(request: Request) {
       content: body.content
     });
 
-    const state = await getState();
-    return NextResponse.json(buildBriefingsPayload(state.savedBriefings));
+    const saved = await getSavedBriefings();
+    return NextResponse.json(buildBriefingsPayload(saved));
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown_error";
     return NextResponse.json({ error: message }, { status: 400 });

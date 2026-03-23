@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { buildWorkspacePayload, type WorkspaceQuery } from "@/lib/page-data";
 import { buildFallbackNewsNow, fetchNewsNowSources, loadLatestNewsNowSnapshot } from "@/lib/newsnow";
 import { enhanceEventsWithAiBrandView } from "@/lib/brand-ai";
-import { getState } from "@/lib/storage";
+import { getSavedOpportunities } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,8 +32,8 @@ export async function GET(request: Request) {
 
   let savedEventIds: string[] = [];
   try {
-    const state = await getState();
-    savedEventIds = state.savedOpportunities.map((item) => item.eventId);
+    const saved = await getSavedOpportunities();
+    savedEventIds = saved.map((item) => item.eventId);
   } catch {
     savedEventIds = [];
   }
