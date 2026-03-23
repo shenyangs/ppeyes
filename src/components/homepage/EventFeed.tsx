@@ -182,7 +182,7 @@ export const EventFeed = forwardRef<HTMLElement, EventFeedProps>(function EventF
                     onGenerateEvent(event, getAnchorTop(eventTarget.currentTarget))
                   }
                 >
-                  {analyzingEventId === event.id ? "生成中..." : "生成创意"}
+                  {analyzingEventId === event.id ? "AI 深拆中..." : "AI 深拆"}
                 </button>
               </div>
             </article>

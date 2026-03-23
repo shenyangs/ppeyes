@@ -26,9 +26,19 @@ export type StoredOpportunity = {
   createdAt: string;
 };
 
+export type StoredBriefing = {
+  id: string;
+  title: string;
+  type: string;
+  note: string;
+  content: string;
+  createdAt: string;
+};
+
 type AppState = {
   watchlistTerms: StoredWatchlistTerm[];
   savedOpportunities: StoredOpportunity[];
+  savedBriefings: StoredBriefing[];
 };
 
 type SupabaseConfig = {
@@ -91,7 +101,17 @@ const seedOpportunities: StoredOpportunity[] = [
 
 const seedState: AppState = {
   watchlistTerms: seedWatchlistTerms,
-  savedOpportunities: seedOpportunities
+  savedOpportunities: seedOpportunities,
+  savedBriefings: [
+    {
+      id: "76a57b1a-f9f8-4e64-b3d0-5a6c0a208001",
+      title: "03.22 晨报：今日品牌热点优先级",
+      type: "晨报",
+      note: "包含 8 条高价值机会和 2 条风险提醒。",
+      content: "今日优先看办公室提神、竞品联名和代言人舆情三类事件。",
+      createdAt: "2026-03-22T09:30:00+08:00"
+    }
+  ]
 };
 
 const supabaseConfig = getSupabaseConfig();
@@ -303,7 +323,8 @@ async function readStateFromSupabase(): Promise<AppState> {
 
   return {
     watchlistTerms: watchlists.map(mapWatchlistRow),
-    savedOpportunities: opportunities.map(mapOpportunityRow)
+    savedOpportunities: opportunities.map(mapOpportunityRow),
+    savedBriefings: (await readStateFromFile()).savedBriefings
   };
 }
 
@@ -419,7 +440,13 @@ async function ensureStateFile() {
 async function readStateFromFile(): Promise<AppState> {
   await ensureStateFile();
   const content = await fs.readFile(statePath, "utf8");
-  return JSON.parse(content) as AppState;
+  const parsed = JSON.parse(content) as Partial<AppState>;
+
+  return {
+    watchlistTerms: parsed.watchlistTerms || seedState.watchlistTerms,
+    savedOpportunities: parsed.savedOpportunities || seedState.savedOpportunities,
+    savedBriefings: parsed.savedBriefings || seedState.savedBriefings
+  };
 }
 
 async function writeStateToFile(state: AppState) {
@@ -491,6 +518,39 @@ async function saveOpportunityToFile(input: {
   return opportunity;
 }
 
+async function saveBriefingToFile(input: {
+  title: string;
+  type: string;
+  note: string;
+  content: string;
+}) {
+  const state = await readStateFromFile();
+  const title = input.title.trim();
+
+  if (!title) {
+    throw new Error("briefing_title_required");
+  }
+
+  const existing = state.savedBriefings.find((item) => item.title === title);
+
+  if (existing) {
+    return existing;
+  }
+
+  const briefing: StoredBriefing = {
+    id: randomUUID(),
+    title,
+    type: input.type.trim() || "AI 简报",
+    note: input.note.trim(),
+    content: input.content.trim(),
+    createdAt: new Date().toISOString()
+  };
+
+  state.savedBriefings.unshift(briefing);
+  await writeStateToFile(state);
+  return briefing;
+}
+
 function shouldUseSupabaseStorage() {
   return Boolean(supabaseConfig);
 }
@@ -528,4 +588,13 @@ export async function saveOpportunity(input: {
   }
 
   return saveOpportunityToFile(input);
+}
+
+export async function saveBriefing(input: {
+  title: string;
+  type: string;
+  note: string;
+  content: string;
+}) {
+  return saveBriefingToFile(input);
 }

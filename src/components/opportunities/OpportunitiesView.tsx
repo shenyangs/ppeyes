@@ -1,14 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AiNativePanel } from "@/components/ai/AiNativePanel";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppShell } from "@/components/layout/AppShell";
 import { fetchJson } from "@/lib/api";
 import type { OpportunitiesPayload } from "@/lib/page-data";
+import type { NativeAiDigest } from "@/lib/native-ai";
 
 export function OpportunitiesView() {
   const [data, setData] = useState<OpportunitiesPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [digest, setDigest] = useState<NativeAiDigest | null>(null);
+  const [digestError, setDigestError] = useState<string | null>(null);
+  const [digestWarning, setDigestWarning] = useState<string | null>(null);
+  const [isDigestLoading, setIsDigestLoading] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -25,6 +31,66 @@ export function OpportunitiesView() {
 
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!data) {
+      setDigest(null);
+      setDigestError(null);
+      setDigestWarning(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsDigestLoading(true);
+    setDigestError(null);
+    setDigestWarning(null);
+
+    fetch("/api/copilot/opportunities", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        opportunities: data
+      }),
+      signal: controller.signal
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("AI 机会判断失败");
+        }
+
+        const payload = (await response.json()) as {
+          digest?: NativeAiDigest;
+          warning?: string;
+        };
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        if (!payload.digest) {
+          throw new Error("没有拿到机会池 AI 结果");
+        }
+
+        setDigest(payload.digest);
+
+        if (payload.warning === "live_digest_failed") {
+          setDigestWarning("当前显示的是系统兜底建议，MiniMax 实时返回失败。");
+        }
+      })
+      .catch((requestError: Error) => {
+        if (controller.signal.aborted) return;
+        setDigestError(requestError.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsDigestLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [data]);
 
   return (
     <AppShell>
@@ -44,10 +110,19 @@ export function OpportunitiesView() {
       <section className="pageIntro">
         <div>
           <p className="panelKicker">机会池</p>
-          <h2>把值得跟的热点沉淀成今天能执行的内容机会</h2>
+          <h2>让 AI 直接告诉你今天该推进哪几条</h2>
         </div>
         <p>这里不是收藏夹，而是轻量选题池。每条机会都要有跟进时机、建议形式和当前状态。</p>
       </section>
+
+      <AiNativePanel
+        kicker="AI 排兵台"
+        title="机会池原生 AI 判断"
+        digest={digest}
+        isLoading={isDigestLoading}
+        error={digestError}
+        warning={digestWarning}
+      />
 
       {!data && !error ? (
         <section className="loadingPanel">

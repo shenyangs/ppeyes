@@ -79,14 +79,14 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
 
   const displayed = analysis;
   const analyzeButtonLabel = isAnalyzing
-    ? "生成中..."
+    ? "深拆中..."
     : isModal
       ? analysis?.mode === "live"
-        ? "再生成创意"
-        : "生成创意"
+        ? "再深拆一版"
+        : "开始深拆"
       : analysis?.mode === "live"
-        ? "再生成一版"
-        : "品牌视角分析";
+        ? "再深拆一版"
+        : "开始深拆";
 
   return (
     <aside
@@ -121,8 +121,8 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
 
       <div className="panelHeader">
         <div>
-          <p className="panelKicker">智能传播助手</p>
-          <h2>传播建议</h2>
+          <p className="panelKicker">AI 策划代理</p>
+          <h2>原生 AI 深拆</h2>
         </div>
         <div className="panelActionRow">
           {!isModal ? (
@@ -137,12 +137,12 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
         {!event ? (
           <div className="emptyState emptyStateSoft">
             <strong>选择一条热点</strong>
-            <p>右侧会直接给出品牌传播建议、参考标题和风险提醒。</p>
+            <p>右侧会直接给出 AI 整理后的品牌策划、风险提醒和执行动作。</p>
           </div>
         ) : isAnalyzing ? (
           <div className="emptyState emptyStateSoft">
-            <strong>正在生成品牌策划</strong>
-            <p>正在把这条热点翻译成可执行的品牌传播方案，请稍等。</p>
+            <strong>正在深拆这条热点</strong>
+            <p>AI 正在把它翻译成可执行的品牌传播方案，请稍等。</p>
           </div>
         ) : !displayed ? (
           <div className="insightSections">
@@ -164,7 +164,7 @@ export const InsightPanel = forwardRef<HTMLElement, InsightPanelProps>(function 
 
             <section className="insightBlock insightBlockSoft">
               <span className="insightLabel">下一步</span>
-              <p>点击“生成创意”后，这里才会出现真实的品牌策划内容，不再显示占位模板。</p>
+              <p>点击“开始深拆”后，这里会出现 AI 主动整理的品牌策划内容，不再显示占位模板。</p>
             </section>
           </div>
         ) : (

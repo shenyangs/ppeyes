@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { AiCommandCenter } from "@/components/ai/AiCommandCenter";
+import { AiNativePanel } from "@/components/ai/AiNativePanel";
 import { BrandLensComposer } from "@/components/homepage/BrandLensComposer";
 import type { EventAnalysis } from "@/lib/analysis";
 import { emptyBrandProfile, normalizeBrandProfile, type BrandProfile } from "@/lib/brand";
@@ -19,6 +21,7 @@ import {
   type TimeFilter,
   type WatchlistType
 } from "@/lib/homepage-data";
+import type { WorkspaceNativeAiDigest } from "@/lib/native-ai";
 import { buildWorkspacePayload, type WorkspaceEvent, type WorkspacePayload, type WorkspaceQuery } from "@/lib/page-data";
 
 const legacyDefaultPlatforms = ["微博", "抖音", "小红书"];
@@ -97,6 +100,11 @@ export function BrandTrendWorkspace() {
   const [isMobileInsightOpen, setIsMobileInsightOpen] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState<{ loaded: number; total: number; stage: string } | null>(null);
   const [analysisEventKey, setAnalysisEventKey] = useState<string | null>(null);
+  const [workspaceDigest, setWorkspaceDigest] = useState<WorkspaceNativeAiDigest | null>(null);
+  const [isWorkspaceDigestLoading, setIsWorkspaceDigestLoading] = useState(false);
+  const [workspaceDigestError, setWorkspaceDigestError] = useState<string | null>(null);
+  const [workspaceDigestWarning, setWorkspaceDigestWarning] = useState<string | null>(null);
+  const [queuedCommandPrompt, setQueuedCommandPrompt] = useState<string | null>(null);
   const analysisRequestRef = useRef(0);
   const workspaceRequestRef = useRef(0);
   const selectedEventKeyRef = useRef<string | null>(null);
@@ -412,6 +420,66 @@ export function BrandTrendWorkspace() {
       setSelectedPlatforms(normalizedSelection);
     }
   }, [selectedPlatforms, workspace?.availablePlatforms]);
+
+  useEffect(() => {
+    if (!workspace) {
+      setWorkspaceDigest(null);
+      setWorkspaceDigestError(null);
+      setWorkspaceDigestWarning(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsWorkspaceDigestLoading(true);
+    setWorkspaceDigestError(null);
+    setWorkspaceDigestWarning(null);
+
+    fetch("/api/copilot/workspace", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        workspace
+      }),
+      signal: controller.signal
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("AI 工作台接管失败");
+        }
+
+        const payload = (await response.json()) as {
+          digest?: WorkspaceNativeAiDigest;
+          warning?: string;
+        };
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        if (!payload.digest) {
+          throw new Error("没有拿到 AI 工作台结果");
+        }
+
+        setWorkspaceDigest(payload.digest);
+
+        if (payload.warning === "live_digest_failed") {
+          setWorkspaceDigestWarning("本次显示的是系统兜底判断，MiniMax 实时返回失败。");
+        }
+      })
+      .catch((requestError: Error) => {
+        if (controller.signal.aborted) return;
+        setWorkspaceDigestError(requestError.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsWorkspaceDigestLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [workspace]);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("brandtrend-brand-profile");
@@ -736,6 +804,10 @@ export function BrandTrendWorkspace() {
       ? filteredEvents.find((event) => getEventSelectionKey(event) === analysisEventKey)?.id ?? null
       : null;
   const showMobileInsightModal = isMobileInsightLayout && isMobileInsightOpen;
+  const focusEvents =
+    workspaceDigest?.focusEventIds
+      .map((id) => filteredEvents.find((event) => event.id === id))
+      .filter((event): event is WorkspaceEvent => Boolean(event)) ?? [];
 
   const mobileInsightModal =
     showMobileInsightModal && typeof document !== "undefined"
@@ -784,7 +856,13 @@ export function BrandTrendWorkspace() {
           )
         }
       >
-        <TopBar query={query} onQueryChange={setQuery} onRefresh={handleManualRefresh} isRefreshing={isLoading} />
+        <TopBar
+          query={query}
+          onQueryChange={setQuery}
+          onRefresh={handleManualRefresh}
+          isRefreshing={isLoading}
+          onGenerateBriefing={() => setQueuedCommandPrompt("给我一份今日晨报")}
+        />
 
         <SummaryMetrics
           cards={metricCards}
@@ -801,6 +879,40 @@ export function BrandTrendWorkspace() {
           onAutofill={handleAutofillBrandLens}
           onApply={applyBrandLens}
           onClear={clearBrandLens}
+        />
+
+        <AiNativePanel
+          kicker="AI 总控台"
+          title="MiniMax 原生作战台"
+          digest={workspaceDigest}
+          isLoading={isWorkspaceDigestLoading}
+          error={workspaceDigestError}
+          warning={workspaceDigestWarning}
+          extra={
+            focusEvents.length > 0 ? (
+              <div className="templateList aiCompactList">
+                {focusEvents.map((event) => (
+                  <button
+                    className="listCard aiFocusCard"
+                    key={event.id}
+                    type="button"
+                    onClick={() => handleSelectEvent(event)}
+                  >
+                    <strong>{event.title}</strong>
+                    <p>{event.brandView?.reason || event.reason}</p>
+                  </button>
+                ))}
+              </div>
+            ) : null
+          }
+        />
+
+        <AiCommandCenter
+          workspace={workspace}
+          brandProfile={brandProfile}
+          selectedEvent={selectedEvent}
+          queuedPrompt={queuedCommandPrompt}
+          onQueuedPromptHandled={() => setQueuedCommandPrompt(null)}
         />
 
         <section className="activeFiltersBar">

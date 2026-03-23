@@ -13,8 +13,8 @@ export function AppHeader({ actions }: AppHeaderProps) {
         <Link className="brandBlock brandLink" href="/">
           <div className="brandMark">热</div>
           <div>
-            <p className="eyebrow">社媒运营工作区</p>
-            <h1>社媒平台运营小组线索台</h1>
+            <p className="eyebrow">PPeyes 原生 AI 运营中枢</p>
+            <h1>社媒平台 AI 作战台</h1>
           </div>
         </Link>
 

@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const items = [
-  { href: "/", label: "工作台" },
-  { href: "/watchlists", label: "监测词" },
-  { href: "/opportunities", label: "机会池" },
-  { href: "/briefings", label: "简报" }
+  { href: "/", label: "AI 工作台" },
+  { href: "/watchlists", label: "AI 监测" },
+  { href: "/opportunities", label: "AI 机会池" },
+  { href: "/briefings", label: "AI 简报" }
 ];
 
 export function GlobalNav() {

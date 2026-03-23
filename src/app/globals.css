@@ -706,6 +706,324 @@ button:disabled {
   font-size: 0.84rem;
 }
 
+.aiNativePanel {
+  padding-bottom: 20px;
+  border: 1px solid rgba(13, 108, 103, 0.14);
+  background:
+    radial-gradient(circle at top right, rgba(13, 108, 103, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 252, 246, 0.94), rgba(246, 241, 232, 0.86));
+}
+
+.aiModeBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(178, 76, 45, 0.16);
+  background: rgba(178, 76, 45, 0.08);
+  color: var(--accent-deep);
+  font-size: 0.82rem;
+}
+
+.aiModeBadgeLive {
+  border-color: rgba(13, 108, 103, 0.18);
+  background: rgba(13, 108, 103, 0.1);
+  color: var(--teal);
+}
+
+.aiNativeBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aiHeroCard {
+  padding: 18px;
+  border: 1px solid rgba(61, 44, 22, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 252, 246, 0.82);
+}
+
+.aiHeroTitle {
+  margin: 0;
+  font-family: var(--font-display), "Songti SC", serif;
+  font-size: 1.5rem;
+  line-height: 1.35;
+}
+
+.aiHeroSummary {
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.aiMetaStrip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.aiMetaStrip div {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(45, 36, 24, 0.045);
+}
+
+.aiMetaStrip span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.aiMetaStrip strong {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.65;
+  font-size: 0.98rem;
+}
+
+.aiInlineHint {
+  margin: 12px 0 0;
+  color: var(--danger);
+  font-size: 0.88rem;
+}
+
+.aiNativeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.aiNativeSection {
+  min-width: 0;
+}
+
+.aiTaskList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aiTaskCard {
+  padding: 15px;
+  border: 1px solid rgba(61, 44, 22, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.82);
+}
+
+.aiTaskTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.aiTaskTop span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.aiTaskCard p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.aiCompactList {
+  gap: 10px;
+}
+
+.aiCommandCenter {
+  padding-bottom: 20px;
+  border: 1px solid rgba(178, 76, 45, 0.14);
+  background:
+    radial-gradient(circle at left top, rgba(178, 76, 45, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 252, 246, 0.92), rgba(247, 241, 231, 0.84));
+}
+
+.aiCommandState {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-align: right;
+}
+
+.aiCommandState strong {
+  color: var(--accent-deep);
+  font-size: 0.88rem;
+}
+
+.aiCommandForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.aiCommandInput {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aiCommandInput span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.aiCommandInput textarea {
+  width: 100%;
+  min-height: 98px;
+  padding: 14px 16px;
+  border: 1px solid rgba(61, 44, 22, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.88);
+  color: var(--text);
+  resize: vertical;
+}
+
+.aiQuickRow {
+  margin-top: 14px;
+}
+
+.aiActionMessage {
+  margin: 12px 0 0;
+  color: var(--teal);
+  font-size: 0.9rem;
+}
+
+.aiCommandHistory {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.aiCommandCard {
+  padding: 18px;
+  border: 1px solid rgba(61, 44, 22, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 252, 246, 0.82);
+}
+
+.aiCommandPrompt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aiCommandPrompt span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.aiCommandPrompt strong {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.aiCommandResultHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.aiCommandResultHead h3 {
+  margin: 0;
+  font-family: var(--font-display), "Songti SC", serif;
+  font-size: 1.32rem;
+}
+
+.aiCommandResultHead p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.aiCommandSections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.aiCommandSection {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(45, 36, 24, 0.045);
+}
+
+.aiCommandSection p {
+  margin: 10px 0 0;
+  color: var(--text);
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.aiCommandActions {
+  margin-top: 14px;
+}
+
+.aiAssetList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.aiAssetCard {
+  padding: 16px;
+  border: 1px solid rgba(61, 44, 22, 0.08);
+  border-radius: 20px;
+  background: rgba(247, 242, 233, 0.88);
+}
+
+.aiAssetContent {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(45, 36, 24, 0.045);
+}
+
+.aiAssetContent p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.aiFocusCard,
+.aiSuggestionCard {
+  width: 100%;
+  text-align: left;
+}
+
+.aiFocusCard {
+  border: 1px solid rgba(61, 44, 22, 0.09);
+  background: rgba(255, 252, 246, 0.82);
+}
+
+.aiFocusCard strong,
+.aiSuggestionCard strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.aiSuggestionCard {
+  border: 1px solid rgba(61, 44, 22, 0.09);
+  background: rgba(255, 252, 246, 0.82);
+}
+
+.aiBulletPanel {
+  min-height: 100%;
+}
+
 .featureGrid,
 .briefingGrid {
   display: grid;
@@ -1252,6 +1570,14 @@ button:disabled {
   .brandLensGrid {
     grid-template-columns: 1fr;
   }
+
+  .aiNativeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .aiCommandSections {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 960px) {
@@ -1351,6 +1677,22 @@ button:disabled {
   .mobileInsightSheet {
     width: 100%;
     max-height: calc(100dvh - 16px);
+  }
+
+  .aiMetaStrip,
+  .aiNativeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .aiCommandForm,
+  .aiCommandSections {
+    grid-template-columns: 1fr;
+  }
+
+  .aiCommandState,
+  .aiCommandResultHead {
+    align-items: flex-start;
+    text-align: left;
   }
 
   .insightPanelModal {

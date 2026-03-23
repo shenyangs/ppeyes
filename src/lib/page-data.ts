@@ -10,6 +10,7 @@ import {
 import { buildBrandView, normalizeBrandProfile, type BrandProfile, type BrandView } from "@/lib/brand";
 import type {
   OpportunityStatus,
+  StoredBriefing,
   StoredOpportunity,
   StoredWatchlistTerm
 } from "@/lib/storage";
@@ -76,9 +77,11 @@ export type BriefingTemplate = {
 };
 
 export type GeneratedBriefing = {
+  id?: string;
   title: string;
   type: string;
   note: string;
+  content?: string;
 };
 
 export type BriefingsPayload = {
@@ -505,7 +508,37 @@ export function buildOpportunitiesPayload(saved: StoredOpportunity[]): Opportuni
   };
 }
 
-export const briefingsPayload: BriefingsPayload = {
+const defaultRecentBriefings: GeneratedBriefing[] = [
+  {
+    title: "03.22 晨报：今日品牌热点优先级",
+    type: "晨报",
+    note: "包含 8 条高价值机会和 2 条风险提醒。"
+  },
+  {
+    title: "竞品联名讨论专题",
+    type: "专题简报",
+    note: "聚焦审美争议、价格带和用户评论情绪。"
+  },
+  {
+    title: "03.21 晚报：热度变化回顾",
+    type: "晚报",
+    note: "记录今日回落与继续升温的事件。"
+  }
+];
+
+export function buildBriefingsPayload(saved: StoredBriefing[] = []): BriefingsPayload {
+  const recent = [
+    ...saved.map<GeneratedBriefing>((item) => ({
+      id: item.id,
+      title: item.title,
+      type: item.type,
+      note: item.note,
+      content: item.content
+    })),
+    ...defaultRecentBriefings
+  ].slice(0, 6);
+
+  return {
   templates: [
     {
       title: "晨报",
@@ -520,23 +553,7 @@ export const briefingsPayload: BriefingsPayload = {
       description: "围绕品牌、竞品或行业给出集中动态和建议。"
     }
   ],
-  recent: [
-    {
-      title: "03.22 晨报：今日品牌热点优先级",
-      type: "晨报",
-      note: "包含 8 条高价值机会和 2 条风险提醒。"
-    },
-    {
-      title: "竞品联名讨论专题",
-      type: "专题简报",
-      note: "聚焦审美争议、价格带和用户评论情绪。"
-    },
-    {
-      title: "03.21 晚报：热度变化回顾",
-      type: "晚报",
-      note: "记录今日回落与继续升温的事件。"
-    }
-  ],
+  recent,
   structure: [
     "今日值得优先看的 3 至 5 条事件。",
     "每条事件为什么相关、建议动作和主要风险。",
@@ -547,4 +564,7 @@ export const briefingsPayload: BriefingsPayload = {
     "支持晨报、晚报定时推送。",
     "专题简报支持一键分享给客户或内部群。"
   ]
-};
+  };
+}
+
+export const briefingsPayload: BriefingsPayload = buildBriefingsPayload();

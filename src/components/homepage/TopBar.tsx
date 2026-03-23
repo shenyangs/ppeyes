@@ -6,6 +6,7 @@ type TopBarProps = {
   onQueryChange: (value: string) => void;
   onRefresh: () => void;
   isRefreshing?: boolean;
+  onGenerateBriefing?: () => void;
 };
 
 function getCurrentDateMeta() {
@@ -36,7 +37,13 @@ function getCurrentDateMeta() {
   };
 }
 
-export function TopBar({ query, onQueryChange, onRefresh, isRefreshing = false }: TopBarProps) {
+export function TopBar({
+  query,
+  onQueryChange,
+  onRefresh,
+  isRefreshing = false,
+  onGenerateBriefing
+}: TopBarProps) {
   const [draftQuery, setDraftQuery] = useState(query);
   const [clock, setClock] = useState(getCurrentDateMeta());
 
@@ -83,8 +90,8 @@ export function TopBar({ query, onQueryChange, onRefresh, isRefreshing = false }
         <button className="ghostButton" type="button" disabled={isRefreshing} onClick={onRefresh}>
           {isRefreshing ? "刷新中..." : "刷新热度"}
         </button>
-        <button className="primaryButton" type="button">
-          生成今日简报
+        <button className="primaryButton" type="button" onClick={onGenerateBriefing}>
+          生成今日 AI 简报
         </button>
         </>
       }

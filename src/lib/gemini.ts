@@ -23,7 +23,8 @@ export type AiSettings = {
 export const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-pro";
 export const DEFAULT_MINIMAX_BASE_URL = "https://api.minimax.io/v1";
-export const DEFAULT_MINIMAX_MODEL = "MiniMax-M2.5";
+export const DEFAULT_MINIMAX_MODEL = "MiniMax-M2.7";
+const MINIMAX_MODEL_FALLBACKS = ["MiniMax-M2.5"];
 const GEMINI_REQUEST_TIMEOUT_MS = 10000;
 const MINIMAX_REQUEST_TIMEOUT_MS = 30000;
 
@@ -167,6 +168,19 @@ function normalizeMiniMaxEndpoints(baseUrl: string) {
   return [`${trimmed}/text/chatcompletion_v2`, `${trimmed}/chat/completions`];
 }
 
+function normalizeMiniMaxModels(model: string | undefined) {
+  const primaryModel = normalizeModel(model, DEFAULT_MINIMAX_MODEL);
+  const candidates = [primaryModel];
+
+  MINIMAX_MODEL_FALLBACKS.forEach((candidate) => {
+    if (candidate !== primaryModel) {
+      candidates.push(candidate);
+    }
+  });
+
+  return candidates;
+}
+
 async function postJson<T>(
   url: string,
   body: Record<string, unknown>,
@@ -255,7 +269,7 @@ function buildMiniMaxSettings(): MiniMaxSettings | null {
 }
 
 export function getEnvAiSettings(): AiSettings | null {
-  const providers = [buildGeminiSettings(), buildMiniMaxSettings()].filter(
+  const providers = [buildMiniMaxSettings(), buildGeminiSettings()].filter(
     (provider): provider is AiProviderSettings => Boolean(provider)
   );
 
@@ -386,65 +400,67 @@ async function runMiniMaxTextPromptWithProvider({
   maxAttempts?: number;
 }) {
   const baseUrl = normalizeBaseUrl(settings.baseUrl, DEFAULT_MINIMAX_BASE_URL);
-  const model = normalizeModel(settings.model, DEFAULT_MINIMAX_MODEL);
+  const modelCandidates = normalizeMiniMaxModels(settings.model);
   const endpointCandidates = normalizeMiniMaxEndpoints(baseUrl);
   const attempts = Math.max(1, maxAttempts || MAX_RETRY_ATTEMPTS);
   const providerTimeoutMs = timeoutMs ?? MINIMAX_REQUEST_TIMEOUT_MS;
   const endpointErrors: string[] = [];
 
-  for (const endpointCandidate of endpointCandidates) {
-    const endpoint = new URL(endpointCandidate);
-    let status = 500;
-    let payload: MiniMaxResponse = {};
+  for (const model of modelCandidates) {
+    for (const endpointCandidate of endpointCandidates) {
+      const endpoint = new URL(endpointCandidate);
+      let status = 500;
+      let payload: MiniMaxResponse = {};
 
-    for (let attempt = 1; attempt <= attempts; attempt += 1) {
-      const response = await postJson<MiniMaxResponse>(
-        endpoint.toString(),
-        {
-          model,
-          messages: [
-            {
-              role: "system",
-              content: systemInstruction,
-              name: "system"
-            },
-            {
-              role: "user",
-              content: prompt,
-              name: "user"
-            }
-          ],
-          ...(typeof temperature === "number" ? { temperature } : {})
-        },
-        providerTimeoutMs,
-        {
-          Authorization: `Bearer ${settings.apiKey.trim()}`
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        const response = await postJson<MiniMaxResponse>(
+          endpoint.toString(),
+          {
+            model,
+            messages: [
+              {
+                role: "system",
+                content: systemInstruction,
+                name: "system"
+              },
+              {
+                role: "user",
+                content: prompt,
+                name: "user"
+              }
+            ],
+            ...(typeof temperature === "number" ? { temperature } : {})
+          },
+          providerTimeoutMs,
+          {
+            Authorization: `Bearer ${settings.apiKey.trim()}`
+          }
+        );
+
+        status = response.status;
+        payload = response.payload;
+
+        if (status >= 200 && status < 300) {
+          const content = extractMiniMaxContent(payload).trim();
+
+          if (!content) {
+            throw new Error(payload.error?.message || payload.base_resp?.status_msg || "minimax_empty_response");
+          }
+
+          return content;
         }
+
+        if (!RETRYABLE_STATUS_CODES.has(status) || attempt === attempts) {
+          break;
+        }
+
+        await sleep(BASE_RETRY_DELAY_MS * attempt);
+      }
+
+      endpointErrors.push(
+        `${model}@${endpoint.pathname}:${payload.error?.message || payload.base_resp?.status_msg || `minimax_error_${status}`}`
       );
-
-      status = response.status;
-      payload = response.payload;
-
-      if (status >= 200 && status < 300) {
-        const content = extractMiniMaxContent(payload).trim();
-
-        if (!content) {
-          throw new Error(payload.error?.message || payload.base_resp?.status_msg || "minimax_empty_response");
-        }
-
-        return content;
-      }
-
-      if (!RETRYABLE_STATUS_CODES.has(status) || attempt === attempts) {
-        break;
-      }
-
-      await sleep(BASE_RETRY_DELAY_MS * attempt);
     }
-
-    endpointErrors.push(
-      `${endpoint.pathname}:${payload.error?.message || payload.base_resp?.status_msg || `minimax_error_${status}`}`
-    );
   }
 
   throw new Error(endpointErrors.join(" | "));
