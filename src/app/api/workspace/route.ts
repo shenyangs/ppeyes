@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildWorkspacePayload, type WorkspaceQuery } from "@/lib/page-data";
-import { fetchNewsNowSources, loadLatestNewsNowSnapshot } from "@/lib/newsnow";
+import { buildFallbackNewsNow, fetchNewsNowSources, loadLatestNewsNowSnapshot } from "@/lib/newsnow";
 import { enhanceEventsWithAiBrandView } from "@/lib/brand-ai";
 import { getState } from "@/lib/storage";
 
@@ -31,7 +31,10 @@ export async function GET(request: Request) {
   };
 
   const state = await getState();
-  let upstream: Awaited<ReturnType<typeof fetchNewsNowSources>> | Awaited<ReturnType<typeof loadLatestNewsNowSnapshot>>;
+  let upstream:
+    | Awaited<ReturnType<typeof fetchNewsNowSources>>
+    | Awaited<ReturnType<typeof loadLatestNewsNowSnapshot>>
+    | ReturnType<typeof buildFallbackNewsNow>;
 
   try {
     upstream = await fetchNewsNowSources(query.platforms);
@@ -46,18 +49,11 @@ export async function GET(request: Request) {
   }
 
   if (!upstream) {
-    return NextResponse.json(
-      {
-        error: "realtime_sources_unavailable",
-        message: "实时热点源暂不可用，请稍后刷新重试。"
-      },
-      {
-        status: 503,
-        headers: {
-          "Cache-Control": "no-store, max-age=0"
-        }
-      }
-    );
+    upstream = await loadLatestNewsNowSnapshot(Number.POSITIVE_INFINITY);
+  }
+
+  if (!upstream) {
+    upstream = buildFallbackNewsNow();
   }
 
   const rankedEvents = deferAi

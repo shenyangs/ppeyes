@@ -575,10 +575,11 @@ export async function fetchNewsNowSources(
   fetchedAt: string;
   source: "live" | "snapshot";
 }> {
-  const targetSources =
+  const requestedSources =
     platformLabels && platformLabels.length > 0
       ? NEWSNOW_SOURCES.filter((source) => platformLabels.includes(source.label))
       : NEWSNOW_SOURCES;
+  const targetSources = requestedSources.length > 0 ? requestedSources : NEWSNOW_SOURCES;
 
   const results = await Promise.allSettled(
     targetSources.map((source) => fetchNewsNowSource(source, options))

@@ -43,7 +43,7 @@ export type EventItem = {
 
 export const filterOptions = {
   time: ["全部", "近 1 小时", "今日", "近 24 小时"] as TimeFilter[],
-  platform: ["微博", "抖音", "小红书", "B 站", "知乎", "百度"],
+  platform: ["微博", "抖音", "B 站", "知乎", "百度"],
   industry: ["全部", "咖啡饮品", "美妆个护", "3C 数码", "餐饮零售", "汽车出行", "通用"],
   watchlist: ["品牌词", "竞品词", "行业词", "风险词"] as WatchlistType[],
   risk: ["全部", "低", "中", "高"] as const,
