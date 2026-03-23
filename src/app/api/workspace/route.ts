@@ -36,7 +36,13 @@ export async function GET(request: Request) {
   try {
     upstream = await fetchNewsNowSources(query.platforms);
   } catch {
-    upstream = await loadLatestNewsNowSnapshot();
+    try {
+      upstream = await fetchNewsNowSources(query.platforms, {
+        allowStaleSource: true
+      });
+    } catch {
+      upstream = await loadLatestNewsNowSnapshot();
+    }
   }
 
   if (!upstream) {

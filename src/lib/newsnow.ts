@@ -187,40 +187,167 @@ function inferRisk(sentiment: EventSentiment): EventItem["risk"] {
   return "中";
 }
 
-function inferAction(risk: EventItem["risk"], title: string): EventAction {
+type TopicLens = {
+  name: string;
+  keywords: string[];
+  industry: string;
+  defaultAction: EventAction;
+  watchlists: EventItem["watchlists"];
+  reasonHint: string;
+  observeHint: string;
+  angleTemplates: [string, string, string];
+  headlineTemplates: [string, string, string];
+  draftTemplate: string;
+  nextStepTemplate: string;
+};
+
+const TOPIC_LENSES: TopicLens[] = [
+  {
+    name: "竞技体育",
+    keywords: ["BLG", "夺冠", "决赛", "郑钦文", "马拉松", "比赛", "联赛", "冠军"],
+    industry: "内容娱乐",
+    defaultAction: "可借势",
+    watchlists: ["行业词", "品牌词"],
+    reasonHint: "用户情绪聚合快、扩散效率高，适合做价值态度型借势",
+    observeHint: "先盯评论区情绪是否持续正向",
+    angleTemplates: [
+      "把「{title}」转成品牌的拼搏/专业价值表达",
+      "做一条赛果速评 + 场景联想的轻内容",
+      "评论区互动：邀请用户补充同类经历或观点"
+    ],
+    headlineTemplates: [
+      "借着「{title}」，品牌可以这样接",
+      "这波竞技热议里，最能代表品牌态度的一点",
+      "从「{title}」提炼一个可传播观点"
+    ],
+    draftTemplate:
+      "围绕「{title}」，建议不要只做赛况复述，而是把用户情绪和品牌价值绑定在一个可共鸣场景里，形成更容易转发的短内容。",
+    nextStepTemplate: "建议 2 小时内完成一版借势文案 + 一版海报标题。"
+  },
+  {
+    name: "科技数码",
+    keywords: ["AI", "机器人", "卫星", "芯片", "苹果", "办公", "效率", "模板", "模型"],
+    industry: "3C 数码",
+    defaultAction: "可借势",
+    watchlists: ["竞品词", "行业词"],
+    reasonHint: "讨论点天然可转成产品能力解释，适合做功能化表达",
+    observeHint: "先确认用户关注的是技术价值还是情绪争议",
+    angleTemplates: [
+      "把「{title}」转译成一个可落地的效率场景",
+      "用 3 步说明品牌能力如何解决同类问题",
+      "对比“概念热度”与“真实可用性”的差异"
+    ],
+    headlineTemplates: [
+      "「{title}」很热，但真正有用的是这一步",
+      "从这条科技热议里，品牌能给出的实用答案",
+      "别只聊概念，聊聊「{title}」怎么落地"
+    ],
+    draftTemplate:
+      "围绕「{title}」，建议以“真实场景 + 可执行方法”来组织内容，让用户快速理解品牌方案到底解决什么问题。",
+    nextStepTemplate: "建议今天内产出 1 条图文清单 + 1 条场景短视频脚本。"
+  },
+  {
+    name: "财经消费",
+    keywords: ["金价", "黄金", "白银", "油价", "股市", "债市", "美元", "汇率"],
+    industry: "财经消费",
+    defaultAction: "可借势",
+    watchlists: ["行业词"],
+    reasonHint: "用户决策焦虑明显，适合做理性解释与实用建议",
+    observeHint: "先看争议点是情绪宣泄还是实际决策问题",
+    angleTemplates: [
+      "围绕「{title}」做“用户最关心问题”拆解",
+      "给出一张决策清单，降低理解门槛",
+      "避免立场化表达，重点放在方法与边界"
+    ],
+    headlineTemplates: [
+      "面对「{title}」，普通用户最该先看什么",
+      "这波财经热议，品牌可以提供哪些确定性",
+      "别急着站队，先把「{title}」讲清楚"
+    ],
+    draftTemplate:
+      "围绕「{title}」，建议用“结论先行 + 风险提示 + 可执行建议”的结构，帮助用户快速完成信息判断。",
+    nextStepTemplate: "建议优先发布一条“3 点结论”短内容，并在评论区补充问答。"
+  },
+  {
+    name: "文娱话题",
+    keywords: ["演员", "剧", "电影", "综艺", "热议", "官宣", "迪丽热巴", "张凌赫", "撕拉片"],
+    industry: "内容娱乐",
+    defaultAction: "可借势",
+    watchlists: ["品牌词", "行业词"],
+    reasonHint: "讨论活跃且轻量传播空间大，适合做情绪共鸣型内容",
+    observeHint: "先看是否出现舆情争议拐点",
+    angleTemplates: [
+      "从「{title}」提炼一个大众共鸣情绪点",
+      "借势但不贴脸，用场景化表达降低突兀感",
+      "用一句观点 + 一组视觉做轻量扩散"
+    ],
+    headlineTemplates: [
+      "这条「{title}」热议，品牌可以这样自然接",
+      "当大家都在聊「{title}」，最适合的表达角度是",
+      "借势不硬蹭：从「{title}」到品牌内容的一步"
+    ],
+    draftTemplate:
+      "围绕「{title}」，建议使用“共鸣情绪 + 生活场景 + 品牌观点”三段式，避免单纯追星式表达。",
+    nextStepTemplate: "建议今天内先发一条轻观点内容，观察互动后再做二次扩展。"
+  },
+  {
+    name: "社会民生",
+    keywords: ["学校", "班主任", "家委会", "气象站", "治水", "春游", "交通", "教育"],
+    industry: "通用",
+    defaultAction: "可观察",
+    watchlists: ["行业词"],
+    reasonHint: "公共讨论度高，但品牌动作更适合克制表达",
+    observeHint: "先确认政策/事实层面的新增信息",
+    angleTemplates: [
+      "将「{title}」转成“用户真正关心的问题”清单",
+      "先做事实梳理，再决定是否转成品牌观点",
+      "用中性口吻输出方法论，避免情绪对冲"
+    ],
+    headlineTemplates: [
+      "关于「{title}」，先把关键事实讲明白",
+      "这条民生话题，品牌更适合怎么说",
+      "别急着借势，先看「{title}」的讨论结构"
+    ],
+    draftTemplate:
+      "围绕「{title}」，建议先做观察型内容，聚焦事实与方法，不做立场化输出，等待更清晰窗口再动作。",
+    nextStepTemplate: "建议先观察 2-4 小时评论区走势，再决定是否跟进。"
+  }
+];
+
+const DEFAULT_TOPIC_LENS: TopicLens = {
+  name: "通用观察",
+  keywords: [],
+  industry: "社会热点",
+  defaultAction: "可观察",
+  watchlists: ["行业词"],
+  reasonHint: "有讨论热度，但仍需找到更明确的品牌切口",
+  observeHint: "先看二级话题与评论情绪走向",
+  angleTemplates: ["提炼「{title}」中的核心讨论点", "从用户场景看可承接内容机会", "先做小规模测试内容验证反应"],
+  headlineTemplates: ["先别急着跟「{title}」", "热度有了，动作窗口还要再确认", "把「{title}」先转成内部观察样本"],
+  draftTemplate: "围绕「{title}」，当前更适合观察和拆解讨论结构，等待更明确切口后再出手。",
+  nextStepTemplate: "建议继续观察 2 至 4 小时后再决定是否跟进。"
+};
+
+function fillTemplate(template: string, title: string) {
+  return template.replaceAll("{title}", title);
+}
+
+function pickTopicLens(title: string): TopicLens {
+  return TOPIC_LENSES.find((lens) => lens.keywords.some((keyword) => title.includes(keyword))) || DEFAULT_TOPIC_LENS;
+}
+
+function inferAction(risk: EventItem["risk"], lens: TopicLens): EventAction {
   if (risk === "高") return "需谨慎";
-  if (
-    title.includes("品牌") ||
-    title.includes("AI") ||
-    title.includes("官宣") ||
-    title.includes("模板") ||
-    title.includes("效率") ||
-    title.includes("热议") ||
-    title.includes("世界水日")
-  ) {
-    return "可借势";
-  }
-  return "可观察";
+  return lens.defaultAction;
 }
 
-function inferIndustry(title: string): string {
-  if (title.includes("金价")) return "财经消费";
-  if (title.includes("直播") || title.includes("广告") || title.includes("演员") || title.includes("官宣")) {
-    return "内容娱乐";
-  }
-  if (title.includes("AI") || title.includes("模板") || title.includes("办公") || title.includes("协同")) {
-    return "3C 数码";
-  }
-  if (title.includes("汽车") || title.includes("补能")) return "汽车出行";
-  if (title.includes("世界水日")) return "通用";
-  return "社会热点";
+function inferIndustry(lens: TopicLens): string {
+  return lens.industry;
 }
 
-function inferWatchlists(title: string): EventItem["watchlists"] {
-  if (title.includes("品牌") || title.includes("广告") || title.includes("官宣")) return ["品牌词", "行业词"];
-  if (title.includes("竞品") || title.includes("模板") || title.includes("AI")) return ["竞品词", "行业词"];
-  if (title.includes("盗版") || title.includes("爆炸") || title.includes("伤亡")) return ["风险词"];
-  return ["行业词"];
+function inferWatchlists(risk: EventItem["risk"], lens: TopicLens): EventItem["watchlists"] {
+  if (risk === "高") return ["风险词"];
+  return lens.watchlists;
 }
 
 function inferTrend(index: number): EventTrend {
@@ -245,16 +372,16 @@ function buildSummary(title: string, source: NewsNowSourceConfig, extraInfo?: st
   return `${source.label} 热点实时话题：${title}，当前适合作为品牌团队快速判断是否需要跟进、观察或预警的事件输入。${tail}`;
 }
 
-function buildReason(action: EventAction, source: NewsNowSourceConfig) {
+function buildReason(action: EventAction, source: NewsNowSourceConfig, lens: TopicLens) {
   if (action === "需谨慎") {
     return `${source.label} 上的这条话题包含明显敏感或负向讨论，更适合作为内部预警素材，不适合直接做外部借势内容。`;
   }
 
   if (action === "可借势") {
-    return `${source.label} 上已有较强公共讨论度，容易延展到品牌观点、场景表达或产品切口，是可尝试承接的传播入口。`;
+    return `${source.label} 上已有较强公共讨论度，${lens.reasonHint}，可直接进入借势策划。`;
   }
 
-  return `${source.label} 上已有热度，但与品牌动作的自然连接还不够强，更适合先观察评论区和二级讨论走向。`;
+  return `${source.label} 上已有热度，${lens.reasonHint}，建议先观察后再决定外发。`;
 }
 
 function buildChannels(action: EventAction, source: NewsNowSourceConfig): string[] {
@@ -263,40 +390,28 @@ function buildChannels(action: EventAction, source: NewsNowSourceConfig): string
   return [source.label, "公众号"];
 }
 
-function buildAngles(action: EventAction, title: string, source: NewsNowSourceConfig): string[] {
+function buildAngles(action: EventAction, title: string, source: NewsNowSourceConfig, lens: TopicLens): string[] {
   if (action === "需谨慎") {
     return ["舆情观察", "内部回应预案", "客服口径统一"];
   }
 
-  if (action === "可借势") {
-    return [`结合 ${source.label} 上的 ${title} 做品牌观点`, "转成用户场景表达", "拆成更适合扩散的轻内容切口"];
-  }
-
-  return ["观点观察", `${source.label} 评论区情绪追踪`, "行业侧复盘"];
+  return lens.angleTemplates.map((template) => fillTemplate(template, title));
 }
 
-function buildHeadlines(action: EventAction, title: string) {
+function buildHeadlines(action: EventAction, title: string, lens: TopicLens) {
   if (action === "需谨慎") {
     return ["当前不建议外部跟进", `先观察 ${title} 的评论走向`, "建议进入内部风险同步"];
   }
 
-  if (action === "可借势") {
-    return [`借着 ${title}，品牌可以这样说`, `${title} 背后，真正值得聊的是什么`, "把公共热议转成品牌表达的一个角度"];
-  }
-
-  return [`先别急着跟 ${title}`, "这条热点更适合当作观察样本", "热度有了，但动作窗口还不够清晰"];
+  return lens.headlineTemplates.map((template) => fillTemplate(template, title));
 }
 
-function buildDraft(action: EventAction, title: string, source: NewsNowSourceConfig) {
+function buildDraft(action: EventAction, title: string, source: NewsNowSourceConfig, lens: TopicLens) {
   if (action === "需谨慎") {
     return `围绕“${title}”的讨论目前更适合内部观察，建议暂停任何轻松化借势表达，先跟踪 ${source.label} 上的舆情发酵路径。`;
   }
 
-  if (action === "可借势") {
-    return `现在 ${source.label} 上很多人在聊“${title}”。如果品牌要跟，不必生硬贴热点，更适合从用户真实场景、公共情绪或品牌态度切入，做一条自然、不冒犯的轻内容。`;
-  }
-
-  return `“${title}” 现在已经在 ${source.label} 上具备讨论度，但更适合先观察二级话题和评论区情绪，等判断出更明确切口后再动作。`;
+  return fillTemplate(lens.draftTemplate, title);
 }
 
 function buildRiskNote(risk: EventItem["risk"]) {
@@ -305,10 +420,10 @@ function buildRiskNote(risk: EventItem["risk"]) {
   return "整体风险较低，但仍建议避免过度品牌化表达。";
 }
 
-function buildNextStep(action: EventAction, source: NewsNowSourceConfig) {
+function buildNextStep(action: EventAction, source: NewsNowSourceConfig, lens: TopicLens) {
   if (action === "需谨慎") return "建议进入内部观察，不建议外发内容。";
   if (action === "可借势") return `建议优先围绕 ${source.label} 的讨论语境，今天内完成一版轻内容或观点卡片。`;
-  return "建议继续观察 2 至 4 小时后再决定是否跟进。";
+  return lens.nextStepTemplate || `${source.label} 上先观察评论区情绪后再决定跟进节奏。`;
 }
 
 function formatFirstSeen(timestamp: number) {
@@ -329,9 +444,10 @@ function inferTimeWindow(timestamp: number) {
 
 function normalizeNewsNowItems(items: NewsNowItem[], source: NewsNowSourceConfig, sourceUpdatedTime: number): EventItem[] {
   return items.slice(0, NEWSNOW_MAX_ITEMS_PER_SOURCE).map((item, index) => {
+    const lens = pickTopicLens(item.title);
     const sentiment = inferSentiment(item.title);
     const risk = inferRisk(sentiment);
-    const action = inferAction(risk, item.title);
+    const action = inferAction(risk, lens);
     const capturedAtMs = Math.max(sourceUpdatedTime - index * 1000 * 60 * 3, sourceUpdatedTime - 1000 * 60 * 60 * 12);
     const capturedAt = new Date(capturedAtMs).toISOString();
 
@@ -343,22 +459,22 @@ function normalizeNewsNowItems(items: NewsNowItem[], source: NewsNowSourceConfig
       sources: [source.label],
       firstSeen: formatFirstSeen(capturedAtMs),
       trend: inferTrend(index),
-      industry: inferIndustry(item.title),
+      industry: inferIndustry(lens),
       sentiment,
       risk,
       relevance: Math.max(38, source.baseRelevance - index * 2),
       opportunity: inferOpportunity(action, risk, index, source),
       action,
-      reason: buildReason(action, source),
+      reason: buildReason(action, source, lens),
       channels: buildChannels(action, source),
-      angles: buildAngles(action, item.title, source),
-      headlines: buildHeadlines(action, item.title),
-      draft: buildDraft(action, item.title, source),
+      angles: buildAngles(action, item.title, source, lens),
+      headlines: buildHeadlines(action, item.title, lens),
+      draft: buildDraft(action, item.title, source, lens),
       riskNote: buildRiskNote(risk),
-      nextStep: buildNextStep(action, source),
+      nextStep: buildNextStep(action, source, lens),
       timeWindow: inferTimeWindow(capturedAtMs),
       heatDelta: Math.max(34, 100 - index * 3 + source.opportunityBoost),
-      watchlists: inferWatchlists(item.title),
+      watchlists: inferWatchlists(risk, lens),
       saved: false
     };
   });
@@ -388,7 +504,10 @@ function dedupeEvents(events: EventItem[]) {
   return Array.from(deduped.values());
 }
 
-async function fetchNewsNowSource(source: NewsNowSourceConfig): Promise<{
+async function fetchNewsNowSource(
+  source: NewsNowSourceConfig,
+  options: { allowStaleSource?: boolean } = {}
+): Promise<{
   events: EventItem[];
   fetchedAt: string;
 }> {
@@ -417,7 +536,7 @@ async function fetchNewsNowSource(source: NewsNowSourceConfig): Promise<{
             }
 
             const updatedTimeMs = Number(parsed.updatedTime) || Date.now();
-            if (Date.now() - updatedTimeMs > NEWSNOW_MAX_SOURCE_AGE_MS) {
+            if (!options.allowStaleSource && Date.now() - updatedTimeMs > NEWSNOW_MAX_SOURCE_AGE_MS) {
               throw new Error(`stale_newsnow_source_${source.id}`);
             }
 
@@ -448,7 +567,10 @@ export async function fetchNewsNowMultiSource(): Promise<{
   return fetchNewsNowSources();
 }
 
-export async function fetchNewsNowSources(platformLabels?: string[]): Promise<{
+export async function fetchNewsNowSources(
+  platformLabels?: string[],
+  options: { allowStaleSource?: boolean } = {}
+): Promise<{
   events: EventItem[];
   fetchedAt: string;
   source: "live" | "snapshot";
@@ -458,7 +580,9 @@ export async function fetchNewsNowSources(platformLabels?: string[]): Promise<{
       ? NEWSNOW_SOURCES.filter((source) => platformLabels.includes(source.label))
       : NEWSNOW_SOURCES;
 
-  const results = await Promise.allSettled(targetSources.map((source) => fetchNewsNowSource(source)));
+  const results = await Promise.allSettled(
+    targetSources.map((source) => fetchNewsNowSource(source, options))
+  );
   const successful = results
     .filter((result): result is PromiseFulfilledResult<{ events: EventItem[]; fetchedAt: string }> => result.status === "fulfilled")
     .map((result) => result.value);
