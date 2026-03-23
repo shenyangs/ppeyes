@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { BrandProfile } from "@/lib/brand";
 import { buildFallbackBrandProfile, runBrandProfileFill } from "@/lib/brand-fill";
-import { getEnvGeminiSettings } from "@/lib/gemini";
+import { getEnvAiSettings } from "@/lib/gemini";
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "missing_seed_profile" }, { status: 400 });
     }
 
-    const envSettings = getEnvGeminiSettings();
+    const envSettings = getEnvAiSettings();
     const settings = envSettings;
 
     if (!settings) {

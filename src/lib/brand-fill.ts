@@ -1,6 +1,6 @@
 import { emptyBrandProfile, normalizeBrandProfile, type BrandProfile } from "@/lib/brand";
 import type { AiSettings } from "@/lib/analysis";
-import { cleanJsonBlock, runGeminiTextPrompt } from "@/lib/gemini";
+import { cleanJsonBlock, runAiTextPrompt } from "@/lib/gemini";
 
 function getSystemInstruction() {
   return "你是中国品牌传播策略顾问。你要把零散品牌信息补全成可用于热点策划的品牌视角 brief。你只能输出有效 JSON。";
@@ -61,7 +61,7 @@ export async function runBrandProfileFill(
   profile: Partial<BrandProfile> | null,
   settings: AiSettings
 ): Promise<BrandProfile> {
-  const content = await runGeminiTextPrompt({
+  const content = await runAiTextPrompt({
     prompt: buildBrandFillPrompt(profile),
     systemInstruction: getSystemInstruction(),
     settings,

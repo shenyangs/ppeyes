@@ -30,6 +30,15 @@ cp .env.example .env
 - `GEMINI_BASE_URL`
 - `GEMINI_API_KEY`
 - `GEMINI_MODEL`
+- `MINIMAX_BASE_URL`
+- `MINIMAX_API_KEY`
+- `MINIMAX_MODEL`
+
+建议线上把 Gemini 和 MiniMax 一起配上：
+
+- 应用会优先走 Gemini
+- Gemini 超时、限流或报错时，会自动切到 MiniMax
+- 如果极空间所在网络更适合国内线路，可把 `MINIMAX_BASE_URL` 设为 `https://api.minimaxi.com/v1`
 
 ## 2. 方案 A：在极空间上直接构建并启动
 
@@ -104,6 +113,9 @@ docker compose up -d
 - `GEMINI_API_KEY` 是否正确
 - `GEMINI_BASE_URL` 是否可从 NAS 访问
 - `GEMINI_MODEL` 是否有效
+- `MINIMAX_API_KEY` 是否正确
+- `MINIMAX_BASE_URL` 是否可从 NAS 访问
+- `MINIMAX_MODEL` 是否有效
 
 ### 重启后数据丢失
 

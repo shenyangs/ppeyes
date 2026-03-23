@@ -1,6 +1,6 @@
 import { buildBrandView, normalizeBrandProfile, type BrandProfile, type BrandView } from "@/lib/brand";
 import type { AiSettings } from "@/lib/analysis";
-import { cleanJsonBlock, getEnvGeminiSettings, runGeminiTextPrompt } from "@/lib/gemini";
+import { cleanJsonBlock, getEnvAiSettings, runAiTextPrompt } from "@/lib/gemini";
 import type { EventItem } from "@/lib/homepage-data";
 import type { WorkspaceEvent } from "@/lib/page-data";
 
@@ -89,7 +89,7 @@ function getSystemInstruction() {
 }
 
 async function runBrandRanking(events: WorkspaceEvent[], brandProfile: BrandProfile, settings: AiSettings) {
-  const content = await runGeminiTextPrompt({
+  const content = await runAiTextPrompt({
     prompt: buildRankingPrompt(events, brandProfile),
     systemInstruction: getSystemInstruction(),
     settings,
@@ -215,7 +215,7 @@ export async function enhanceEventsWithAiBrandView(
     return fallbackEvents;
   }
 
-  const settings = getEnvGeminiSettings();
+  const settings = getEnvAiSettings();
   if (!settings) {
     return fallbackEvents;
   }

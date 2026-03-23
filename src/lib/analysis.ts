@@ -1,5 +1,5 @@
 import { buildBrandView, normalizeBrandProfile, type BrandProfile } from "@/lib/brand";
-import { cleanJsonBlock, runGeminiTextPrompt, type AiSettings } from "@/lib/gemini";
+import { cleanJsonBlock, runAiTextPrompt, type AiSettings } from "@/lib/gemini";
 import type { EventItem } from "@/lib/homepage-data";
 export type { AiSettings } from "@/lib/gemini";
 
@@ -228,7 +228,7 @@ export async function runGeminiAnalysis(
   settings: AiSettings,
   brandProfile?: Partial<BrandProfile> | null
 ): Promise<EventAnalysis> {
-  const content = await runGeminiTextPrompt({
+  const content = await runAiTextPrompt({
     prompt: buildPrompt(event, brandProfile),
     systemInstruction: getSystemInstruction(),
     settings,

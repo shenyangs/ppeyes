@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { BrandProfile } from "@/lib/brand";
 import { buildFallbackAnalysis, runGeminiAnalysis } from "@/lib/analysis";
-import { getEnvGeminiSettings } from "@/lib/gemini";
+import { getEnvAiSettings } from "@/lib/gemini";
 import type { EventItem } from "@/lib/homepage-data";
 
 export async function POST(request: Request) {
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "missing_event" }, { status: 400 });
     }
 
-    const envSettings = getEnvGeminiSettings();
+    const envSettings = getEnvAiSettings();
     const settings = envSettings;
 
     if (!settings) {
