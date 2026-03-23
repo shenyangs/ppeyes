@@ -24,6 +24,8 @@ export const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.co
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-pro";
 export const DEFAULT_MINIMAX_BASE_URL = "https://api.minimax.io/v1";
 export const DEFAULT_MINIMAX_MODEL = "MiniMax-M2.5";
+const GEMINI_REQUEST_TIMEOUT_MS = 10000;
+const MINIMAX_REQUEST_TIMEOUT_MS = 30000;
 
 type GeminiResponse = {
   candidates?: Array<{
@@ -59,7 +61,6 @@ type MiniMaxResponse = {
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 const MAX_RETRY_ATTEMPTS = 3;
 const BASE_RETRY_DELAY_MS = 600;
-const GEMINI_REQUEST_TIMEOUT_MS = 10000;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -152,14 +153,18 @@ function normalizeModel(model: string | undefined, defaultModel: string) {
   return model?.trim().replace(/^models\//, "") || defaultModel;
 }
 
-function normalizeMiniMaxEndpoint(baseUrl: string) {
+function normalizeMiniMaxEndpoints(baseUrl: string) {
   const trimmed = baseUrl.trim().replace(/\/$/, "");
 
-  if (trimmed.endsWith("/chat/completions") || trimmed.endsWith("/text/chatcompletion_v2")) {
-    return trimmed;
+  if (trimmed.endsWith("/text/chatcompletion_v2")) {
+    return [trimmed];
   }
 
-  return `${trimmed}/chat/completions`;
+  if (trimmed.endsWith("/chat/completions")) {
+    return [trimmed, trimmed.replace(/\/chat\/completions$/, "/text/chatcompletion_v2")];
+  }
+
+  return [`${trimmed}/text/chatcompletion_v2`, `${trimmed}/chat/completions`];
 }
 
 async function postJson<T>(
@@ -382,57 +387,67 @@ async function runMiniMaxTextPromptWithProvider({
 }) {
   const baseUrl = normalizeBaseUrl(settings.baseUrl, DEFAULT_MINIMAX_BASE_URL);
   const model = normalizeModel(settings.model, DEFAULT_MINIMAX_MODEL);
-  const endpoint = new URL(normalizeMiniMaxEndpoint(baseUrl));
+  const endpointCandidates = normalizeMiniMaxEndpoints(baseUrl);
   const attempts = Math.max(1, maxAttempts || MAX_RETRY_ATTEMPTS);
+  const providerTimeoutMs = timeoutMs ?? MINIMAX_REQUEST_TIMEOUT_MS;
+  const endpointErrors: string[] = [];
 
-  let status = 500;
-  let payload: MiniMaxResponse = {};
+  for (const endpointCandidate of endpointCandidates) {
+    const endpoint = new URL(endpointCandidate);
+    let status = 500;
+    let payload: MiniMaxResponse = {};
 
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const response = await postJson<MiniMaxResponse>(
-      endpoint.toString(),
-      {
-        model,
-        messages: [
-          {
-            role: "system",
-            content: systemInstruction
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        reasoning_split: true,
-        ...(typeof temperature === "number" ? { temperature } : {})
-      },
-      timeoutMs,
-      {
-        Authorization: `Bearer ${settings.apiKey.trim()}`
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      const response = await postJson<MiniMaxResponse>(
+        endpoint.toString(),
+        {
+          model,
+          messages: [
+            {
+              role: "system",
+              content: systemInstruction,
+              name: "system"
+            },
+            {
+              role: "user",
+              content: prompt,
+              name: "user"
+            }
+          ],
+          ...(typeof temperature === "number" ? { temperature } : {})
+        },
+        providerTimeoutMs,
+        {
+          Authorization: `Bearer ${settings.apiKey.trim()}`
+        }
+      );
+
+      status = response.status;
+      payload = response.payload;
+
+      if (status >= 200 && status < 300) {
+        const content = extractMiniMaxContent(payload).trim();
+
+        if (!content) {
+          throw new Error(payload.error?.message || payload.base_resp?.status_msg || "minimax_empty_response");
+        }
+
+        return content;
       }
+
+      if (!RETRYABLE_STATUS_CODES.has(status) || attempt === attempts) {
+        break;
+      }
+
+      await sleep(BASE_RETRY_DELAY_MS * attempt);
+    }
+
+    endpointErrors.push(
+      `${endpoint.pathname}:${payload.error?.message || payload.base_resp?.status_msg || `minimax_error_${status}`}`
     );
-
-    status = response.status;
-    payload = response.payload;
-
-    if (status >= 200 && status < 300) {
-      break;
-    }
-
-    if (!RETRYABLE_STATUS_CODES.has(status) || attempt === attempts) {
-      throw new Error(payload.error?.message || payload.base_resp?.status_msg || `minimax_error_${status}`);
-    }
-
-    await sleep(BASE_RETRY_DELAY_MS * attempt);
   }
 
-  const content = extractMiniMaxContent(payload).trim();
-
-  if (!content) {
-    throw new Error(payload.error?.message || payload.base_resp?.status_msg || "minimax_empty_response");
-  }
-
-  return content;
+  throw new Error(endpointErrors.join(" | "));
 }
 
 export async function runAiTextPrompt({
@@ -476,6 +491,7 @@ export async function runAiTextPrompt({
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown_error";
       errors.push(`${provider.provider}:${reason}`);
+      console.error(`[ai] ${provider.provider} request failed: ${reason}`);
 
       if (settings.providers.length > 1) {
         console.warn(`[ai] ${provider.provider} failed, trying next provider: ${reason}`);
